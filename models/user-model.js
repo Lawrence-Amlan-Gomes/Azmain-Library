@@ -1,36 +1,40 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-const schema = new Schema({
+const userSchema = new Schema({
   name: {
     required: true,
-    type: String
+    type: String,
   },
   email: {
     required: true,
-    type: String
+    type: String,
   },
   password: {
     required: true,
-    type: String
+    type: String,
   },
   phone: {
     required: false,
-    type: String
+    type: String,
   },
   photo: {
     required: false,
-    type: String
+    type: String,
   },
   bio: {
     required: false,
-    type: String
+    type: String,
   },
-  paymentType: {
+  userType: {
     required: false,
-    type: String
+    type: String,
   },
-  
+  borrowedBooks: {
+    required: false,
+    type: Array,
+  },
 });
 
-
-export const userModel = mongoose.models.users ?? mongoose.model("users", schema);
+// Export the model, checking if it already exists to avoid redefinition
+export const userModel =
+  mongoose.models?.users || mongoose.model("users", userSchema);

@@ -163,7 +163,7 @@ const LoginForm = () => {
           onClick={submitForm}
           className={`text-[18px] text-white cursor-pointer rounded-lg mt-10 py-2 px-6  ${"bg-green-800 hover:bg-green-700"}`}
         >
-          {isLoading ? `Loging...` : `Login`}
+          {isLoading ? `Logging...` : `Login`}
         </button>
         <p className="mt-10 text-[16px] sm:text-[18px] md:text-[20px] lg:text-[22px] xl:text-[24px] 2xl:text-[26px]">
           No Account?{" "}

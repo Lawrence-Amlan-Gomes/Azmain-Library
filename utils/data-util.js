@@ -1,15 +1,10 @@
-export const replaceMongoIdInArray = (array) => {
-    const mappedArray = array.map(item => {
-      return {
-        id: item._id.toString(),
-        ...item
-      }
-    }).map(({_id, ...rest}) => rest);
+export function replaceMongoIdInObject(obj) {
+  if (!obj) return null;
+  const { _id, ...rest } = obj;
+  return { id: _id ? _id.toString() : null, ...rest };
+}
 
-    return mappedArray;
-  }
-
-  export const replaceMongoIdInObject = (obj) => {
-    const {_id, ...updatedObj} = {...obj, id: obj._id.toString()};
-   return updatedObj;
-  }
+export function replaceMongoIdInArray(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(replaceMongoIdInObject);
+}

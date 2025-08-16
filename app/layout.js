@@ -10,8 +10,8 @@ import BmiProvider from "./providers/BmiProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Be Healthy",
-  description: "Improve a person's life with a healthy lifestyle",
+  title: "Library Management System",
+  description: "",
 };
 
 export default async function RootLayout({ children }) {

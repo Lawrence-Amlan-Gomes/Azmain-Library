@@ -115,7 +115,8 @@ const RegistrationForm = () => {
           phone: "Phone",
           photo: "",
           bio: "Bio",
-          paymentType: "Free",
+          userType: "user",
+          borrowedBooks: [],
         });
         if (registered) {
           setIsLoading(false);

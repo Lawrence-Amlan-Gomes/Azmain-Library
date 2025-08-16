@@ -1,141 +1,84 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
-import { useTheme } from "@/app/hooks/useTheme";
+import { useAuth } from "@/app/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
+import { getAllBooks2 } from "@/app/actions";
 import { motion } from "framer-motion";
-import Image from "next/image";
-import features from "@/app/features/features";
-import EachFeatureName from "./EachFeatureName";
+import EachBookCard from "./EachBookCard";
+import Link from "next/link";
 
 export default function LandingPage() {
-  const { theme } = useTheme();
+  const router = useRouter();
+  const { auth, setAllBooks, allBooks } = useAuth();
+  const [initialBooks, setInitialBooks] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(""); // Initialize with allBooks from context
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  let searchedBooks = allBooks || [] // Use state to hold searched books
+
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const books = await getAllBooks2();
+        const plainBooks = Array.isArray(books)
+          ? books.map((book) => ({ ...book }))
+          : [];
+        setInitialBooks(plainBooks);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        searchedBooks = plainBooks; // Initialize searchedBooks with all books
+        setAllBooks(plainBooks); // Set allBooks in context
+      } catch (err) {
+        setError(`Failed to load books: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBooks();
+  }, [auth, router, setAllBooks]);
+
+  useEffect(() => {
+    const filtered = initialBooks.filter((book) =>
+      [book.id.toString(), book.title, book.author, book.genre].some((field) =>
+        field?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+    searchedBooks = filtered; // Update searchedBooks based on searchTerm
+  }, [searchTerm, initialBooks]);
 
   return (
-    <div
-      className={`w-full h-full ${
-        theme ? "bg-[#ffffff] text-[#0a0a0a]" : "bg-[#000000] text-[#ebebeb]"
-      }`}
-    >
-      <div className="w-full h-full hidden sm:grid grid-cols-12 grid-rows-12 gap-5 p-5 md:p-10">
-        <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, type: "just" }}
-          className="col-span-2 row-span-3 md:col-span-3 md:row-span-12 pl-5 py-10 pr-5 flex justify-center items-center overflow-hidden"
+    <div className="bg-white text-gray-800 min-h-screen py-4 sm:py-6 h-full">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-gray-900 ml-4">
+        Book Library
+      </h1>
+      {error && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-4 text-red-600 text-sm"
         >
-          <div className=" w-full max-h-full overflow-y-auto overflow-x-hidden scrollbar-none">
-            {features.map((feature) => (
-              <EachFeatureName key={feature.id} feature={feature} />
-            ))}
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, type: "just" }}
-          className={` md:col-span-9 md:row-span-5 p-10 flex justify-center items-center font-bold text-center text-[25px] sm:text-[30px] md:text-[35px] lg:text-[40px] xl:text-[45px] 2xl:text-[50px] ${
-            theme ? "text-black" : "text-white"
-          }`}
-        >
-          Your Path to a Healthier Life Starts Here
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: +50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, type: "just" }}
-          className={` md:col-span-6 md:row-span-7 p-10 flex justify-center items-center text-justify text-[13px] sm:text-[16px] md:text-[17px] lg:text-[20px] xl:text-[25px] 2xl:text-[35px] ${
-            theme ? "text-[#111111]" : "text-[#eeeeee]"
-          }`}
-        >
-          Stay Fit, Eat Right, and Live Better with Smart Health Insights –
-          Personalized Wellness Tips, Balanced Nutrition, and Fitness Tracking
-          for a Healthier You!
-        </motion.div>
-
-        <div className="md:col-span-3 md:row-span-7 p-2">
-          {" "}
-          <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 1, type: "just" }}
-            className="float-left h-full w-full relative rounded-xl overflow-hidden"
-          >
-            <div className="relative h-full w-full">
-              <Image
-                priority
-                src={
-                  theme ? "/landingPagePicLight.png" : "/landingPagePicDark.png"
-                }
-                alt="Landing Page"
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"
-                className="object-contain"
-              />
-            </div>
-          </motion.div>
-        </div>
+          {error}
+        </motion.p>
+      )}
+      <div className="mb-4 sm:mb-6">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by ID, Title, Author, or Genre"
+          className="w-full max-w-md p-2 sm:p-3 rounded-md border ml-4 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
-      <div className="w-full h-full sm:hidden grid grid-cols-12 grid-rows-12 gap-5 p-5 md:p-10">
-        
-        <motion.div
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, type: "just" }}
-          className={`col-span-12 row-span-4 p-10 flex justify-center items-center font-bold text-center text-[25px] sm:text-[30px] md:text-[35px] lg:text-[40px] xl:text-[45px] 2xl:text-[50px] ${
-            theme ? "text-black" : "text-white"
-          }`}
-        >
-          Your Path to a Healthier Life Starts Here
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, type: "just" }}
-          className="col-span-5 row-span-5 md:col-span-3 md:row-span-12  pl-10 flex justify-center items-center overflow-hidden"
-        >
-          <div className=" w-full max-h-full overflow-y-auto overflow-x-hidden scrollbar-none">
-            {features.map((feature) => (
-              <EachFeatureName key={feature.id} feature={feature} />
-            ))}
-          </div>
-        </motion.div>
-
-        <div className="col-span-7 row-span-5  p-2">
-          {" "}
-          <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 1, type: "just" }}
-            className="float-left h-full w-full relative rounded-xl overflow-hidden"
-          >
-            <div className="relative h-full w-full">
-              <Image
-                priority
-                src={
-                  theme ? "/landingPagePicLight.png" : "/landingPagePicDark.png"
-                }
-                alt="Landing Page"
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"
-                className="object-contain"
-              />
-            </div>
-          </motion.div>
+      {searchedBooks.length == 0 ? (
+        <p className="text-gray-500 pl-4">Loading books...</p>
+      ) : (
+        <div className="w-full h-full overflow-y-auto relative pb-[200px]">
+          {searchedBooks.map((book) => (
+            <EachBookCard key={`${book.id}`} book={book} />
+          ))}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: +50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, type: "just" }}
-          className={` row-span-3 col-span-12 p-10 flex justify-center items-center text-justify text-[13px] sm:text-[16px] md:text-[17px] lg:text-[20px] xl:text-[25px] 2xl:text-[35px] ${
-            theme ? "text-[#111111]" : "text-[#eeeeee]"
-          }`}
-        >
-          Stay Fit, Eat Right, and Live Better with Smart Health Insights –
-          Personalized Wellness Tips, Balanced Nutrition, and Fitness Tracking
-          for a Healthier You!
-        </motion.div>
-      </div>
+      )}
     </div>
   );
 }

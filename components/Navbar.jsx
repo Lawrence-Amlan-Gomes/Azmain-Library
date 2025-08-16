@@ -4,22 +4,45 @@ import Link from "next/link";
 import ProfileIcon from "./ProfileIcon";
 import { useTheme } from "@/app/hooks/useTheme.js";
 import ToogleTheme from "./ToogleTheme";
+import { useAuth } from "@/app/hooks/useAuth.js";
 const Navbar = () => {
+  const { auth } = useAuth();
   const { theme, setTheme } = useTheme();
   return (
     <div
-    className={`h-[10%] overflow-hidden ${theme ? "bg-[#dddddd] border-[#cccccc] border-b-[1px]" : "bg-[#0a0a0a] border-[#222222] border-b-[1px]"}`}
+      className={`h-[10%] overflow-hidden ${
+        theme ? "bg-[#7f0000]" : "bg-orange-600"
+      }`}
     >
-      <div className="w-[30%] ml-[5%] h-full float-left flex justify-start items-center">
+      <div className="w-[40%] ml-[5%] h-full float-left flex justify-start items-center">
         <Link href="/">
-          <div className={`text-[15px] sm:text-[18px] md:text-[22px] lg:text-[25px] xl:text-[30px] 2xl:text-[35px] font-bold text-left ${theme ? "text-[#222222]" : "text-[#dadada]"}`}>Be Healthy</div>
+          <div
+            className={`text-[15px] sm:text-[18px] md:text-[22px] lg:text-[25px] xl:text-[30px] 2xl:text-[35px] font-bold text-left ${
+              theme ? "text-white" : "text-white"
+            }`}
+          >
+            Library Management System
+          </div>
         </Link>
       </div>
-      <div className="h-full float-left flex justify-end items-center w-[60%] mr-[5%]">
-        <ul className="flex gap-5 text-[#cfcfcf]">
-          <li>
-            <ToogleTheme/>
-          </li>
+      <div className="h-full float-left flex justify-end items-center w-[50%] mr-[5%]">
+        {auth ? (
+          auth.userType === "admin" && (
+            <ul className="flex gap-5 text-white hover:underline">
+              {/* <li>
+            <ToogleTheme />
+          </li> */}
+              <Link href="/admin">Admin</Link>
+            </ul>
+          )
+        ) : (
+          <></>
+        )}
+
+        <ul className="flex ml-5 gap-5 text-[#cfcfcf]">
+          {/* <li>
+            <ToogleTheme />
+          </li> */}
           <li>
             <ProfileIcon />
           </li>
