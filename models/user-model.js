@@ -33,6 +33,10 @@ const userSchema = new Schema({
     required: false,
     type: Array,
   },
+  borrowedHistory: {
+    required: false,
+    type: Array,
+  },
 });
 
 // Export the model, checking if it already exists to avoid redefinition

@@ -2,50 +2,53 @@
 "use client";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getAllBooks2 } from "@/app/actions";
 import { motion } from "framer-motion";
 import EachBookCard from "./EachBookCard";
-import Link from "next/link";
 
 export default function LandingPage() {
   const router = useRouter();
   const { auth, setAllBooks, allBooks } = useAuth();
-  const [initialBooks, setInitialBooks] = useState([]);
-  const [searchTerm, setSearchTerm] = useState(""); // Initialize with allBooks from context
-  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchedBooks, setSearchedBooks] = useState(allBooks || []); // Initialize with allBooks
+  const [loading, setLoading] = useState(!allBooks || allBooks.length === 0); // Only load if allBooks is empty
   const [error, setError] = useState(null);
-  let searchedBooks = allBooks || [] // Use state to hold searched books
 
   useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const books = await getAllBooks2();
-        const plainBooks = Array.isArray(books)
-          ? books.map((book) => ({ ...book }))
-          : [];
-        setInitialBooks(plainBooks);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        searchedBooks = plainBooks; // Initialize searchedBooks with all books
-        setAllBooks(plainBooks); // Set allBooks in context
-      } catch (err) {
-        setError(`Failed to load books: ${err.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Only fetch if allBooks is empty
+    if (!allBooks || allBooks.length === 0) {
+      const fetchBooks = async () => {
+        try {
+          const books = await getAllBooks2();
+          const plainBooks = Array.isArray(books)
+            ? books.map((book) => ({ ...book }))
+            : [];
+          setAllBooks(plainBooks); // Update context
+          setSearchedBooks(plainBooks); // Initialize searchedBooks
+        } catch (err) {
+          setError(`Failed to load books: ${err.message}`);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    fetchBooks();
-  }, [auth, router, setAllBooks]);
+      fetchBooks();
+    } else {
+      // If allBooks is already populated, use it for searchedBooks
+      setSearchedBooks(allBooks);
+      setLoading(false);
+    }
+  }, [setAllBooks]); // Only depend on setAllBooks
 
   useEffect(() => {
-    const filtered = initialBooks.filter((book) =>
-      [book.id.toString(), book.title, book.author, book.genre].some((field) =>
+    const filtered = allBooks.filter((book) =>
+      [book.id?.toString(), book.title, book.author, book.genre].some((field) =>
         field?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     );
-    searchedBooks = filtered; // Update searchedBooks based on searchTerm
-  }, [searchTerm, initialBooks]);
+    setSearchedBooks(filtered); // Update searchedBooks state
+  }, [searchTerm, allBooks]);
 
   return (
     <div className="bg-white text-gray-800 min-h-screen py-4 sm:py-6 h-full">
@@ -56,7 +59,7 @@ export default function LandingPage() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mb-4 text-red-600 text-sm"
+          className="mb-4 text-red-600 text-sm ml-4"
         >
           {error}
         </motion.p>
@@ -70,8 +73,10 @@ export default function LandingPage() {
           className="w-full max-w-md p-2 sm:p-3 rounded-md border ml-4 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
-      {searchedBooks.length == 0 ? (
+      {loading ? (
         <p className="text-gray-500 pl-4">Loading books...</p>
+      ) : searchedBooks.length === 0 ? (
+        <p className="text-gray-500 pl-4">No books found</p>
       ) : (
         <div className="w-full h-full overflow-y-auto relative pb-[200px]">
           {searchedBooks.map((book) => (

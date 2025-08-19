@@ -1,7 +1,7 @@
 "use client";
-import { updateIsBorrowed, updateBorrowedBooks, updateInventory } from "@/app/actions";
+import { updateIsBorrowed, updateBorrowedBooks, updateInventory, updateBorrowedHistory } from "@/app/actions";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,8 @@ export default function User() {
   const [borrowedBooks, setBorrowedBooks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [feedback, setFeedback] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     if (!auth) {
@@ -19,6 +21,15 @@ export default function User() {
       const borrowed = Array.isArray(auth.borrowedBooks) ? auth.borrowedBooks : [];
       setBorrowedBooks(borrowed);
       console.log("Initialized borrowedBooks:", borrowed);
+      console.log("Initialized borrowedHistory:", auth.borrowedHistory || []);
+      console.log("auth.email:", auth.email);
+
+      // Check for expired books and show popup if any
+      const hasExpiredBooks = borrowed.some((borrowedBook) => {
+        const fine = calculateFine(borrowedBook.borrowedDate);
+        return fine > 0;
+      });
+      setShowPopup(hasExpiredBooks);
     }
     setIsCheckingAuth(false);
   }, [auth, router]);
@@ -34,6 +45,7 @@ export default function User() {
           year: "numeric",
         });
       }
+      console.error(`Invalid borrowedDate: ${borrowedDate}`);
       return "Invalid Date";
     } catch (error) {
       console.error(`Error parsing borrowedDate: ${borrowedDate}`, error);
@@ -51,8 +63,11 @@ export default function User() {
           Math.floor((currentDate - expireDate) / (1000 * 60 * 60 * 24)),
           0
         );
-        return daysOverdue * 100;
+        const fine = daysOverdue * 100;
+        console.log(`Calculated fine for ${borrowedDate}: ${fine} TK (Days overdue: ${daysOverdue})`);
+        return fine;
       }
+      console.error(`Invalid borrowDate: ${borrowedDate}`);
       return 0;
     } catch (error) {
       console.error(`Error calculating fine for ${borrowedDate}`, error);
@@ -63,27 +78,63 @@ export default function User() {
   const handleBorrow = async () => {
     if (!auth || !book || isLoading) {
       console.error("Borrow failed: auth, book missing, or operation in progress", { auth, book, isLoading });
+      setFeedback("Cannot borrow: Missing data or operation in progress");
+      return;
+    }
+    if (!auth.email) {
+      console.error("Borrow failed: auth.email is missing", { auth });
+      setFeedback("Cannot borrow: User email is missing");
       return;
     }
     setIsLoading(true);
+    setFeedback("");
     try {
+      const currentDate = new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      });
       const newBorrowedBook = {
         bookId: book.id,
-        borrowedDate: new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "2-digit",
-          year: "numeric",
-        }),
+        borrowedDate: currentDate,
         title: book.title || "N/A",
         photo: book.photo || "",
       };
       const newBorrowedBooks = [...borrowedBooks, newBorrowedBook];
       const newIsBorrowed = (book.isBorrowed || 0) + 1;
       const newInventory = (book.inventory || 0) - 1;
+      const newBorrowedHistory = Array.isArray(auth.borrowedHistory)
+        ? [
+            ...auth.borrowedHistory,
+            {
+              bookId: book.id,
+              borrowedDate: currentDate,
+              expiresDate: getExpireDate(currentDate),
+              return: "Have to return",
+            },
+          ]
+        : [
+            {
+              bookId: book.id,
+              borrowedDate: currentDate,
+              expiresDate: getExpireDate(currentDate),
+              return: "Have to return",
+            },
+          ];
+
+      // Log data before sending to server
+      console.log("Borrow: Updating state and database", {
+        email: auth.email,
+        newBorrowedBooks,
+        newBorrowedHistory,
+        bookId: book.id,
+        newIsBorrowed,
+        newInventory,
+      });
 
       // Update frontend state
       setBorrowedBooks(newBorrowedBooks);
-      setAuth({ ...auth, borrowedBooks: newBorrowedBooks });
+      setAuth({ ...auth, borrowedBooks: newBorrowedBooks, borrowedHistory: newBorrowedHistory });
       const updatedBook = { ...book, isBorrowed: newIsBorrowed, inventory: newInventory };
       setBook(updatedBook);
       setAllBooks(
@@ -91,18 +142,26 @@ export default function User() {
       );
 
       // Call server actions to update database
-      console.log("Borrow: Updating state and database", {
-        email: auth.email,
-        newBorrowedBooks,
-        bookId: book.id,
-        newIsBorrowed,
-        newInventory,
-      });
       await updateBorrowedBooks(auth.email, newBorrowedBooks);
       await updateIsBorrowed(book.id, newIsBorrowed);
       await updateInventory(book.id, newInventory);
+      try {
+        const historyResult = await updateBorrowedHistory(auth.email, newBorrowedHistory);
+        if (historyResult?.success === false) {
+          console.error("Failed to update borrowedHistory:", historyResult.error);
+          setFeedback(`Borrowed book, but failed to update history: ${historyResult.error}`);
+          return;
+        }
+      } catch (historyError) {
+        console.error("Failed to update borrowedHistory:", historyError);
+        setFeedback(`Borrowed book, but failed to update history: ${historyError.message}`);
+        return;
+      }
+
+      setFeedback("Book borrowed successfully!");
     } catch (error) {
       console.error("Unexpected error in handleBorrow:", error);
+      setFeedback(`Failed to borrow book: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -111,19 +170,48 @@ export default function User() {
   const handleReturn = async () => {
     if (!auth || !book || isLoading) {
       console.error("Return failed: auth, book missing, or operation in progress", { auth, book, isLoading });
+      setFeedback("Cannot return: Missing data or operation in progress");
+      return;
+    }
+    if (!auth.email) {
+      console.error("Return failed: auth.email is missing", { auth });
+      setFeedback("Cannot return: User email is missing");
       return;
     }
     setIsLoading(true);
+    setFeedback("");
     try {
+      const currentDate = new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      });
       const updatedBorrowedBooks = borrowedBooks.filter(
         (borrowed) => borrowed.bookId !== book.id
       );
       const newIsBorrowed = Math.max((book.isBorrowed || 0) - 1, 0);
       const newInventory = (book.inventory || 0) + 1;
+      const newBorrowedHistory = Array.isArray(auth.borrowedHistory)
+        ? auth.borrowedHistory.map((entry) =>
+            entry.bookId === book.id && entry.return === "Have to return"
+              ? { ...entry, return: currentDate }
+              : entry
+          )
+        : [];
+
+      // Log data before sending to server
+      console.log("Return: Updating state and database", {
+        email: auth.email,
+        updatedBorrowedBooks,
+        newBorrowedHistory,
+        bookId: book.id,
+        newIsBorrowed,
+        newInventory,
+      });
 
       // Update frontend state
       setBorrowedBooks(updatedBorrowedBooks);
-      setAuth({ ...auth, borrowedBooks: updatedBorrowedBooks });
+      setAuth({ ...auth, borrowedBooks: updatedBorrowedBooks, borrowedHistory: newBorrowedHistory });
       const updatedBook = { ...book, isBorrowed: newIsBorrowed, inventory: newInventory };
       setBook(updatedBook);
       setAllBooks(
@@ -131,18 +219,27 @@ export default function User() {
       );
 
       // Call server actions to update database
-      console.log("Return: Updating state and database", {
-        email: auth.email,
-        updatedBorrowedBooks,
-        bookId: book.id,
-        newIsBorrowed,
-        newInventory,
-      });
       await updateBorrowedBooks(auth.email, updatedBorrowedBooks);
       await updateIsBorrowed(book.id, newIsBorrowed);
       await updateInventory(book.id, newInventory);
+      try {
+        const historyResult = await updateBorrowedHistory(auth.email, newBorrowedHistory);
+        if (historyResult?.success === false) {
+          console.error("Failed to update borrowedHistory:", historyResult.error);
+          setFeedback(`Returned book, but failed to update history: ${historyResult.error}`);
+          return;
+        }
+      } catch (historyError) {
+        console.error("Failed to update borrowedHistory:", historyError);
+        setFeedback(`Returned book, but failed to update history: ${historyError.message}`);
+        return;
+      }
+
+      setFeedback("Book returned successfully!");
+      setShowPopup(updatedBorrowedBooks.some((borrowedBook) => calculateFine(borrowedBook.borrowedDate) > 0));
     } catch (error) {
       console.error("Unexpected error in handleReturn:", error);
+      setFeedback(`Failed to return book: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -167,12 +264,18 @@ export default function User() {
     !isBookBorrowed &&
     book?.inventory > 0;
 
+  const handleClosePopup = () => {
+    setShowPopup(false);
+  };
+
   if (isCheckingAuth || !auth) {
     return null;
   }
 
+  const expiredBooks = borrowedBooks.filter((borrowedBook) => calculateFine(borrowedBook.borrowedDate) > 0);
+
   return (
-    <div className="bg-white text-gray-800 w-full h-full min-h-screen p-6 flex flex-col md:flex-row gap-6 overflow-auto pb-20">
+    <div className="bg-white text-gray-800 w-full h-full min-h-screen p-6 flex flex-col md:flex-row gap-6 overflow-auto pb-20 relative">
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -180,6 +283,11 @@ export default function User() {
         className="w-full md:w-[70%] bg-gray-50 p-6 rounded-lg shadow-md overflow-y-auto"
       >
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Book Details</h2>
+        {feedback && (
+          <p className={`text-sm ${feedback.includes("Failed") ? "text-red-600" : "text-green-600"} mb-4`}>
+            {feedback}
+          </p>
+        )}
         {book ? (
           <div className="space-y-4">
             <motion.div
@@ -187,6 +295,7 @@ export default function User() {
               className="bg-gray-200 w-40 h-60 rounded-md overflow-hidden flex items-center justify-center"
             >
               {book.photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={book.photo}
                   alt="Book cover"
@@ -278,6 +387,7 @@ export default function User() {
               >
                 <div className="bg-gray-200 w-16 h-24 rounded-md overflow-hidden flex items-center justify-center">
                   {borrowedBook.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={borrowedBook.photo}
                       alt="Borrowed book cover"
@@ -294,10 +404,10 @@ export default function User() {
                     {borrowedBook.title || "N/A"}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Borrowed: {borrowedBook.borrowedDate}
+                    Borrowed: {borrowedBook.borrowedDate || "N/A"}
                   </p>
                   <p className="text-sm text-gray-600">
-                    Expires: {getExpireDate(borrowedBook.borrowedDate)}
+                    Expires: {getExpireDate(borrowedBook.borrowedDate) || "N/A"}
                   </p>
                   {calculateFine(borrowedBook.borrowedDate) > 0 && (
                     <p className="text-sm text-red-600">
@@ -310,6 +420,50 @@ export default function User() {
           </div>
         )}
       </motion.div>
+
+      <AnimatePresence>
+        {showPopup && expiredBooks.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg max-w-sm w-full z-50"
+          >
+            <button
+              onClick={handleClosePopup}
+              className="absolute top-2 right-2 text-white hover:text-gray-200"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <h3 className="text-lg font-semibold mb-2">Overdue Books</h3>
+            <ul className="space-y-2">
+              {expiredBooks.map((book, index) => (
+                <li key={`${book.bookId}-${index}`} className="text-sm">
+                  <span className="font-medium">{book.title || "N/A"}</span>
+                  <br />
+                  Expired on: {getExpireDate(book.borrowedDate) || "N/A"}
+                  <br />
+                  Fine: {calculateFine(book.borrowedDate)} TK
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -38,6 +38,12 @@ const Navbar = () => {
         ) : (
           <></>
         )}
+        <ul className="flex gap-5 text-white hover:underline">
+          {/* <li>
+            <ToogleTheme />
+          </li> */}
+          <Link href="/history">History</Link>
+        </ul>
 
         <ul className="flex ml-5 gap-5 text-[#cfcfcf]">
           {/* <li>

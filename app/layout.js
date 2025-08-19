@@ -5,7 +5,6 @@ import AuthProvider from "./providers/AuthProvider";
 
 import { dbConnect } from "@/services/mongo";
 import ThemeProvider from "./providers/ThemeProvider";
-import BmiProvider from "./providers/BmiProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +18,6 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <BmiProvider>
           <ThemeProvider>
             <AuthProvider>
               <div className="h-screen overflow-hidden">
@@ -28,7 +26,6 @@ export default async function RootLayout({ children }) {
               </div>
             </AuthProvider>
           </ThemeProvider>
-        </BmiProvider>
       </body>
     </html>
   );

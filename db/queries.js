@@ -84,6 +84,10 @@ async function changePhoto(email, photo) {
   await userModel.updateOne({ email: email }, { $set: { photo: photo } });
 }
 
+async function changeBorrowedHistory(email, borrowedHistory) {
+  await userModel.updateOne({ email: email }, { $set: { borrowedHistory: borrowedHistory } });
+}
+
 async function changeIsBorrowed(id, isBorrowed) {
   await booksModel.updateOne({ id: id }, { $set: { isBorrowed: isBorrowed } });
 }
@@ -117,5 +121,6 @@ export {
   deleteBook,
   changeBorrowedBooks,
   changeIsBorrowed,
-  changeInventory
+  changeInventory,
+  changeBorrowedHistory,
 };

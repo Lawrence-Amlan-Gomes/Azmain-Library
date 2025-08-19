@@ -16,7 +16,8 @@ import {
   deleteBook,
   changeBorrowedBooks,
   changeIsBorrowed,
-  changeInventory
+  changeInventory,
+  changeBorrowedHistory
 } from "@/db/queries";
 import { redirect } from "next/navigation";
 
@@ -163,6 +164,15 @@ async function updateInventory(id, inventory) {
   }
 }
 
+async function updateBorrowedHistory(email, borrowedHistory) {
+  await dbConnect();
+  try {
+    await changeBorrowedHistory(email, borrowedHistory);
+  } catch (error) {
+    return { success: false, error: `Error: ${error.message}` };
+  }
+}
+
 
 export {
   registerUser,
@@ -178,5 +188,6 @@ export {
   callDeleteBook,
   updateBorrowedBooks,
   updateIsBorrowed,
-  updateInventory
+  updateInventory,
+  updateBorrowedHistory
 };
