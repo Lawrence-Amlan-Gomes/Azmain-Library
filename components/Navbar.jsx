@@ -28,12 +28,20 @@ const Navbar = () => {
       <div className="h-full float-left flex justify-end items-center w-[50%] mr-[5%]">
         {auth ? (
           auth.userType === "admin" && (
-            <ul className="flex gap-5 text-white hover:underline">
-              {/* <li>
+            <>
+              <ul className="flex gap-5 text-white hover:underline mr-5">
+                {/* <li>
             <ToogleTheme />
           </li> */}
-              <Link href="/admin">Admin</Link>
-            </ul>
+                <Link href="/allUsers">Users</Link>
+              </ul>
+              <ul className="flex gap-5 text-white hover:underline mr-5">
+                {/* <li>
+            <ToogleTheme />
+          </li> */}
+                <Link href="/admin">Admin</Link>
+              </ul>
+            </>
           )
         ) : (
           <></>
