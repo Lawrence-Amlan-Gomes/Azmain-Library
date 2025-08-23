@@ -6,6 +6,29 @@ import { useEffect, useState } from "react";
 import EachField from "./EachField";
 import { motion } from "framer-motion";
 
+async function hashPassword(password, iterations = 10000) {
+    try {
+        const fixedSalt = 'fixedSalt1234567890abcdef';
+        const encodedPassword = new TextEncoder().encode(password);
+        const encodedSalt = new TextEncoder().encode(fixedSalt);
+        
+        const combined = new Uint8Array(encodedPassword.length + encodedSalt.length);
+        combined.set(encodedPassword, 0);
+        combined.set(encodedSalt, encodedPassword.length);
+        
+        let data = combined;
+        for (let i = 0; i < iterations; i++) {
+            data = new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+        }
+        
+        const hash = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
+        return hash;
+    } catch (error) {
+        console.error('Error hashing password:', error);
+        throw error;
+    }
+}
+
 const RegistrationForm = () => {
   const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
@@ -108,18 +131,24 @@ const RegistrationForm = () => {
       const sureSubmit = confirm("Are you sure to Register?");
       if (sureSubmit) {
         setIsLoading(true);
-        let registered = await registerUser({
-          name: name,
-          email: email,
-          password: password,
-          phone: "Phone",
-          photo: "",
-          bio: "Bio",
-          userType: "user",
-          borrowedBooks: [],
-        });
-        if (registered) {
+        try {
+          const hashedPassword = await hashPassword(password);
+          let registered = await registerUser({
+            name: name,
+            email: email,
+            password: hashedPassword,
+            phone: "Phone",
+            photo: "",
+            bio: "Bio",
+            userType: "user",
+            borrowedBooks: [],
+          });
+          if (registered) {
+            setIsLoading(false);
+          }
+        } catch (error) {
           setIsLoading(false);
+          console.error("Registration failed:", error);
         }
       }
     }
@@ -137,9 +166,9 @@ const RegistrationForm = () => {
       }`}
     >
       <motion.div
-      initial={{opacity: 0}}
-      animate={{opacity: 1}}
-      transition={{ duration: 1, type: "just" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, type: "just" }}
         className={`p-10 overflow-hidden rounded-lg sm:my-[5%] sm:w-[80%] sm:mx-[10%] lg:w-[700px] xl:w-[800px] 2xl:w-[900px] lg:my-0 text-center shadow-lg ${
           theme ? "bg-[#ececec] text-[#0a0a0a]" : "bg-[#0f0f0f] text-[#f0f0f0]"
         }`}
@@ -148,7 +177,6 @@ const RegistrationForm = () => {
           <div className="text-[20px] sm:text-[25px] md:text-[30px] lg:text-[35px] xl:text-[40px] 2xl:text-[45px] font-bold mb-8 w-full float-left flex justify-center items-center">
             Registration
           </div>
-          {/* Trick the browser with this fake email and password field */}
           <div className="opacity-0">
             <EachField
               label="fake"
@@ -223,9 +251,7 @@ const RegistrationForm = () => {
           </button>
         </div>
 
-        <div
-          className={`float-left w-[50%] sm:block hidden overflow-hidden pr-5`}
-        >
+        <div className={`float-left w-[50%] sm:block hidden overflow-hidden pr-5`}>
           <EachField
             label="Name"
             type="name"
@@ -250,9 +276,7 @@ const RegistrationForm = () => {
           />
         </div>
 
-        <div
-          className={`float-left w-[50%] sm:block hidden overflow-hidden pl-5`}
-        >
+        <div className={`float-left w-[50%] sm:block hidden overflow-hidden pl-5`}>
           <EachField
             label="Email"
             type="email"
