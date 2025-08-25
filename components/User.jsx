@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import colors from "@/app/colors";
 
 export default function User() {
   const router = useRouter();
@@ -308,7 +309,7 @@ export default function User() {
               )}
             </motion.div>
             <div>
-              <h3 className="text-xl font-semibold">Title</h3>
+              <h3 className={`text-xl font-semibold`}>Title</h3>
               <p>{book.title || "N/A"}</p>
             </div>
             <div>
@@ -400,7 +401,7 @@ export default function User() {
                   )}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">
+                  <h3 className={`${colors.textKey} text-lg font-semibold`}>
                     {borrowedBook.title || "N/A"}
                   </h3>
                   <p className="text-sm text-gray-600">

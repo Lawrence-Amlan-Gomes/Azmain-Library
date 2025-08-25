@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import EachField from "./EachField";
 import { motion } from "framer-motion";
+import colors from "@/app/colors";
 
 async function hashPassword(password, iterations = 10000) {
     try {
@@ -174,7 +175,7 @@ const RegistrationForm = () => {
         }`}
       >
         <div className={"w-full overflow-hidden"}>
-          <div className="text-[20px] sm:text-[25px] md:text-[30px] lg:text-[35px] xl:text-[40px] 2xl:text-[45px] font-bold mb-8 w-full float-left flex justify-center items-center">
+          <div className={`${colors.textKey} text-[20px] sm:text-[25px] md:text-[30px] lg:text-[35px] xl:text-[40px] 2xl:text-[45px] font-bold mb-8 w-full float-left flex justify-center items-center`}>
             Registration
           </div>
           <div className="opacity-0">

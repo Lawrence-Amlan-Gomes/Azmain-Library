@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"; // ✅ Correct import for App Route
 import { useEffect, useState } from "react";
 import ProfilePic from "./ProfilePic";
 import { motion } from "framer-motion";
+import colors from "@/app/colors";
 
 const Profile = () => {
   const router = useRouter(); // This will now work
@@ -70,10 +71,12 @@ const Profile = () => {
           {auth ? (
             <>
               {" "}
-              <div className="w-full mt-5 mb-5 flex items-center justify-center font-bold text-[35px]">
+              <div
+                className={`${colors.textKey} w-full mt-5 mb-5 flex items-center justify-center font-bold text-[35px]`}
+              >
                 {isEditing ? (
                   <input
-                    className={`bg-transparent border-[2px] border-blue-700 focus:border-green-700 focus:outline-none text-center rounded-lg w-full p-3`}
+                    className={` bg-transparent border-[2px] border-blue-700 focus:border-green-700 focus:outline-none text-center rounded-lg w-full p-3`}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
@@ -160,7 +163,7 @@ const Profile = () => {
           {auth ? (
             <>
               {" "}
-              <div className="w-full mt-5 mb-5 flex items-center justify-center font-bold text-[35px]">
+              <div className={`${colors.textKey} w-full mt-5 mb-5 flex items-center justify-center font-bold text-[35px]`}>
                 {isEditing ? (
                   <input
                     className={`bg-transparent border-[2px] border-blue-700 focus:border-green-700 focus:outline-none text-center rounded-lg w-full p-3`}

@@ -5,6 +5,7 @@ import { useAuth } from "@/app/hooks/useAuth";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import bookIcon from "../public/bookIcon.png";
+import colors from "@/app/colors";
 
 export default function AllUsers() {
   const { auth, allUsers, setAllUsers } = useAuth();
@@ -132,7 +133,7 @@ export default function AllUsers() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">{user.name}</h3>
+                    <h3 className={`${colors.textKey} text-lg font-semibold`}>{user.name}</h3>
                     <p className="text-sm text-gray-600">Email: {user.email}</p>
                     <p className="text-sm text-gray-600">Phone: {user.phone}</p>
                   </div>

@@ -3,6 +3,7 @@
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import colors from "@/app/colors";
 
 export default function EachBookCard({ book }) {
   const router = useRouter();
@@ -10,9 +11,7 @@ export default function EachBookCard({ book }) {
 
   const handleCardClick = () => {
     setBook(book);
-    if (auth?.userType === "admin") {
-      router.push("/admin");
-    } else {
+    if (auth) {
       router.push("/user");
     }
   };
@@ -41,7 +40,7 @@ export default function EachBookCard({ book }) {
         )}
       </div>
       <div className=" pl-5 pb-5">
-        <h3 className="text-sm sm:text-base font-semibold text-gray-900 truncate">
+        <h3 className={`${colors.textKey} text-sm sm:text-base font-semibold text-gray-900 truncate`}>
           {book.title || "Untitled"}
         </h3>
       </div>

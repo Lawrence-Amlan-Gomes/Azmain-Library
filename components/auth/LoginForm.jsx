@@ -7,6 +7,7 @@ import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/app/hooks/useTheme";
 import { motion } from "framer-motion";
+import colors from "@/app/colors";
 
 async function hashPassword(password, iterations = 10000) {
     try {
@@ -130,7 +131,7 @@ const LoginForm = () => {
           theme ? "bg-[#ececec] text-[#0a0a0a]" : "bg-[#0f0f0f] text-[#f0f0f0]"
         }`}
       >
-        <div className="text-[20px] sm:text-[25px] md:text-[30px] lg:text-[35px] xl:text-[40px] 2xl:text-[45px] font-bold mb-10 ">
+        <div className={`${colors.textKey} text-[20px] sm:text-[25px] md:text-[30px] lg:text-[35px] xl:text-[40px] 2xl:text-[45px] font-bold mb-10 `}>
           Login
         </div>
         <div className="opacity-0">

@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import colors from "@/app/colors";
 
 export default function Admin() {
   // State for adding a new book
@@ -619,7 +620,7 @@ useEffect(() => {
                     }`}
                   >
                     <td className="border-b border-gray-300 p-3">{book.id}</td>
-                    <td className="border-b border-gray-300 p-3">
+                    <td className={`${colors.textKey} font-bold border-b border-gray-300 p-3`}>
                       {book.title || "N/A"}
                     </td>
                     <td className="border-b border-gray-300 p-3">

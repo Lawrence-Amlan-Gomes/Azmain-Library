@@ -5,13 +5,14 @@ import ProfileIcon from "./ProfileIcon";
 import { useTheme } from "@/app/hooks/useTheme.js";
 import ToogleTheme from "./ToogleTheme";
 import { useAuth } from "@/app/hooks/useAuth.js";
+import colors from "@/app/colors";
 const Navbar = () => {
   const { auth } = useAuth();
   const { theme, setTheme } = useTheme();
   return (
     <div
       className={`h-[10%] overflow-hidden ${
-        theme ? "bg-[#7f0000]" : "bg-orange-600"
+        theme ? colors.keyBg : "bg-orange-600"
       }`}
     >
       <div className="w-[40%] ml-[5%] h-full float-left flex justify-start items-center">

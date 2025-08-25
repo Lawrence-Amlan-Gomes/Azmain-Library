@@ -3,6 +3,7 @@ import { useAuth } from "@/app/hooks/useAuth";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import colors from "@/app/colors";
 
 export default function BorrowedHistory() {
   const { auth, allBooks } = useAuth();
@@ -59,7 +60,7 @@ export default function BorrowedHistory() {
                   )}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">{book?.title || "N/A"}</h3>
+                  <h3 className={`${colors.textKey} text-lg font-semibold`}>{book?.title || "N/A"}</h3>
                   <p className="text-sm text-gray-600">Book ID: {entry.bookId}</p>
                   <p className="text-sm text-gray-600">Borrowed: {entry.borrowedDate}</p>
                   <p className="text-sm text-gray-600">Expires: {entry.expiresDate}</p>
