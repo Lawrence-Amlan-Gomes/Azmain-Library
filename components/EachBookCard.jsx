@@ -11,9 +11,7 @@ export default function EachBookCard({ book }) {
 
   const handleCardClick = () => {
     setBook(book);
-    if (auth) {
-      router.push("/user");
-    }
+    router.push("/user");
   };
 
   return (
@@ -22,7 +20,7 @@ export default function EachBookCard({ book }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       onClick={handleCardClick}
-      className="bg-gray-50 rounded-lg overflow-hidden cursor-pointer w-[18%] mx-[1%] float-left border-[1px] border-[#676767] mb-5"
+      className={`bg-gray-50 rounded-lg overflow-hidden cursor-pointer w-[18%] mx-[1%] float-left border-[1px] border-[#676767] mb-5 hover:bg-[#eeeeee] `}
     >
       <div className="w-full aspect-[3/4] flex items-center justify-center p-5 overflow-hidden rounded-md relative">
         {book.photo ? (

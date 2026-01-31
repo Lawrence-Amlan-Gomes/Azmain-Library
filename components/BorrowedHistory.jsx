@@ -26,8 +26,9 @@ export default function BorrowedHistory() {
 
   return (
     <div className="bg-white text-gray-800 w-full h-full min-h-screen p-6 overflow-y-auto">
-      <h2 className="text-2xl font-bold mb-4 text-gray-900">Borrowed History</h2>
-      <div className="w-full">
+      <h2 className="text-2xl font-bold mb-6 text-gray-900">Borrowed History</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {auth.borrowedHistory.map((entry, index) => {
           const book = allBooks.find((b) => b.id === entry.bookId);
           // Parse dates for comparison
@@ -42,10 +43,10 @@ export default function BorrowedHistory() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="float-left w-[calc(25%-1rem)] mx-2 mb-4 bg-white p-3 border-[1px] border-[#aaaaaa] rounded-md shadow-sm"
+              className="bg-white border border-[#aaaaaa] rounded-md shadow-sm overflow-hidden flex flex-col h-full"
             >
-              <div className="flex items-center space-x-4">
-                <div className="bg-gray-200 w-16 h-24 rounded-md overflow-hidden flex items-center justify-center">
+              <div className="flex flex-1 p-4 gap-4">
+                <div className="bg-gray-200 w-20 h-28 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
                   {book?.photo ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -59,14 +60,17 @@ export default function BorrowedHistory() {
                     </div>
                   )}
                 </div>
-                <div>
-                  <h3 className={`${colors.textKey} text-lg font-semibold`}>{book?.title || "N/A"}</h3>
+
+                <div className="flex-1 flex flex-col">
+                  <h3 className={`${colors.textKey} text-lg font-semibold mb-1`}>
+                    {book?.title || "N/A"}
+                  </h3>
                   <p className="text-sm text-gray-600">Book ID: {entry.bookId}</p>
                   <p className="text-sm text-gray-600">Borrowed: {entry.borrowedDate}</p>
                   <p className="text-sm text-gray-600">Expires: {entry.expiresDate}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 mt-auto">
                     Return:{" "}
-                    <span className={isOverdue ? "text-red-600" : "text-green-600"}>
+                    <span className={isOverdue ? "text-red-600 font-medium" : "text-green-600"}>
                       {entry.return || (returnDate ? returnDate.toLocaleDateString() : "Have to return")}
                     </span>
                   </p>
@@ -75,7 +79,6 @@ export default function BorrowedHistory() {
             </motion.div>
           );
         })}
-        <div className="clear-both"></div>
       </div>
     </div>
   );

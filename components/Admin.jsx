@@ -1,889 +1,664 @@
 "use client";
+
 import {
   createBook2,
   getAllBooks2,
   callUpdateBook,
   callDeleteBook,
-  callChangeBookPhoto,
 } from "@/app/actions";
-import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import colors from "@/app/colors";
 
 export default function Admin() {
-  // State for adding a new book
-  const {auth} = useAuth();
+  const { auth } = useAuth();
   const router = useRouter();
-  const [id, setId] = useState("");
-  const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
-  const [genre, setGenre] = useState("");
-  const [description, setDescription] = useState("");
-  const [rating, setRating] = useState("");
-  const [inventory, setInventory] = useState("");
-  const [newPhoto, setNewPhoto] = useState("");
-  const [isUploadingNewPhoto, setIsUploadingNewPhoto] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [existingBooks, setExistingBooks] = useState([]);
-  const [filteredBooks, setFilteredBooks] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [refreshTrigger, setRefreshTrigger] = useState(false);
+
+  const [books, setBooks] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // ── Feedback popup ───────────────────────────────────────
   const [feedback, setFeedback] = useState("");
-  const newPhotoInputRef = useRef(null);
+  const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
+  const [isError, setIsError] = useState(false);
 
-  // State for updating a book
+  const showFeedback = (message, isError = false) => {
+    setFeedback(message);
+    setIsError(isError);
+    setIsFeedbackVisible(true);
+
+    setTimeout(() => {
+      setIsFeedbackVisible(false);
+    }, 3500);
+  };
+
+  // Create form
+  const [createForm, setCreateForm] = useState({
+    id: "",
+    title: "",
+    author: "",
+    genre: "",
+    description: "",
+    rating: "",
+    inventory: "",
+    photo: "",
+  });
+  const [createErrors, setCreateErrors] = useState({});
+
+  // Edit modal
   const [editingBook, setEditingBook] = useState(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editAuthor, setEditAuthor] = useState("");
-  const [editGenre, setEditGenre] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editRating, setEditRating] = useState("");
-  const [editInventory, setEditInventory] = useState("");
-  const [editPhoto, setEditPhoto] = useState("");
-  const [isUploadingEditPhoto, setIsUploadingEditPhoto] = useState(false);
-  const editPhotoInputRef = useRef(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    author: "",
+    genre: "",
+    description: "",
+    rating: "",
+    inventory: "",
+    photo: "",
+  });
+  const [editErrors, setEditErrors] = useState({});
 
-  // State for table photo uploads
-  const [tablePhotoUploading, setTablePhotoUploading] = useState({});
-  const tablePhotoRefs = useRef({});
-
-useEffect(() => {
-  console.log(auth)
-  if(!auth){
-    router.push("/login");
-  }
-}, [auth, router]);
-
+  // Scroll lock when modal is open
   useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const books = await getAllBooks2();
-        const plainBooks = Array.isArray(books)
-          ? books.map((book) => ({ ...book, id: String(book.id) })) // Ensure id is string
-          : [];
-        setExistingBooks(plainBooks);
-        setFilteredBooks(plainBooks);
-      } catch (error) {
-        console.error("Error fetching books:", error);
-        setFeedback(`Failed to load books: ${error.message}`);
-      }
-    };
-    fetchBooks();
-  }, [refreshTrigger]);
+    if (!editingBook) return;
 
+    const scrollY = window.pageYOffset;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      document.body.style.paddingRight = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, [editingBook]);
+
+  // Redirect if not authenticated
   useEffect(() => {
-    const filtered = existingBooks.filter((book) =>
-      [book.id, book.title, book.author, book.genre].some((field) =>
-        field?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
-    setFilteredBooks(filtered);
-  }, [searchQuery, existingBooks]);
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!id) newErrors.id = "Book ID is required";
-    else if (isNaN(id) || Number(id) <= 0) newErrors.id = "ID must be a positive number";
-    if (!title) newErrors.title = "Title is required";
-    if (!author) newErrors.author = "Author is required";
-    if (!genre) newErrors.genre = "Genre is required";
-    if (!description) newErrors.description = "Description is required";
-    if (!rating || isNaN(rating) || Number(rating) < 0 || Number(rating) > 5) {
-      newErrors.rating = "Rating must be a number between 0 and 5";
+    if (auth === null) {
+      router.replace("/login");
     }
-    if (!inventory || isNaN(inventory) || Number(inventory) < 0) {
-      newErrors.inventory = "Inventory must be a non-negative number";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  }, [auth, router]);
 
-  const handleNewPhotoClick = () => {
-    if (newPhotoInputRef.current) {
-      newPhotoInputRef.current.click();
-    }
-  };
+  // Load books
+  useEffect(() => {
+    loadBooks();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleNewPhotoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
-    if (!validTypes.includes(file.type)) {
-      setFeedback("Error: Only JPG, JPEG, and PNG files are allowed!");
-      return;
-    }
-
-    setIsUploadingNewPhoto(true);
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-
-    reader.onload = () => {
-      setNewPhoto(reader.result);
-      setIsUploadingNewPhoto(false);
-    };
-    reader.onerror = () => {
-      setFeedback("Error reading image file!");
-      setIsUploadingNewPhoto(false);
-    };
-  };
-
-  const handleNewPhotoDelete = () => {
-    setNewPhoto("");
-  };
-
-  const submitForm = async () => {
-    if (!validateForm()) {
-      setFeedback("Please fix the errors in the form");
-      return;
-    }
-
-    const isDuplicateId = existingBooks.some((book) => book.id === id);
-    if (isDuplicateId) {
-      setFeedback("A book with this ID already exists!");
-      return;
-    }
-
-    const bookData = {
-      id: String(id), // Ensure id is string
-      title,
-      author,
-      genre,
-      description,
-      rating: Number(rating) || 0,
-      inventory: Number(inventory) || 0,
-      photo: newPhoto || "",
-      isBorrowed: 0,
-    };
-    console.log("Submitting book data:", bookData);
-
-    const sureSubmit = confirm("Are you sure to add this book?");
-    if (sureSubmit) {
-      setIsLoading(true);
-      try {
-        const registered = await createBook2(bookData);
-        console.log("Response from createBook2:", registered);
-        if (registered && registered.id) {
-          setFeedback("Book added successfully!");
-          setId("");
-          setTitle("");
-          setAuthor("");
-          setGenre("");
-          setDescription("");
-          setRating("");
-          setInventory("");
-          setNewPhoto("");
-          setErrors({});
-          setRefreshTrigger((prev) => !prev);
-        } else {
-          setFeedback("Failed to add book: No ID returned");
-        }
-      } catch (error) {
-        console.error("Error adding book:", error);
-        setFeedback(`Error adding book: ${error.message}`);
-      } finally {
-        setIsLoading(false);
-      }
+  const loadBooks = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllBooks2();
+      const safeBooks = Array.isArray(data)
+        ? data.map((b) => ({
+            ...b,
+            isBorrowed: b.isBorrowed ?? 0,
+            photo: b.photo || "",
+          }))
+        : [];
+      setBooks(safeBooks);
+    } catch (err) {
+      console.error("Failed to load books:", err);
+      showFeedback("Could not load books", true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const validateEditForm = () => {
-    const newErrors = {};
-    if (!editTitle) newErrors.editTitle = "Title is required";
-    if (!editAuthor) newErrors.editAuthor = "Author is required";
-    if (!editGenre) newErrors.editGenre = "Genre is required";
-    if (!editDescription) newErrors.editDescription = "Description is required";
-    if (
-      !editRating ||
-      isNaN(editRating) ||
-      Number(editRating) < 0 ||
-      Number(editRating) > 5
-    ) {
-      newErrors.editRating = "Rating must be a number between 0 and 5";
+  // ── CREATE ────────────────────────────────────────────────
+  const validateCreate = () => {
+    const errors = {};
+
+    if (!createForm.id.trim()) errors.id = "ID is required";
+    else if (!/^\d+$/.test(createForm.id)) errors.id = "ID must be a number";
+    else if (books.some((b) => b.id === Number(createForm.id))) {
+      errors.id = "ID already exists";
     }
-    if (!editInventory || isNaN(editInventory) || Number(editInventory) < 0) {
-      newErrors.editInventory = "Inventory must be a non-negative number";
+
+    if (!createForm.title.trim()) errors.title = "Title is required";
+    if (!createForm.author.trim()) errors.author = "Author is required";
+    if (!createForm.genre.trim()) errors.genre = "Genre is required";
+    if (!createForm.description.trim()) errors.description = "Description is required";
+
+    const ratingNum = Number(createForm.rating);
+    if (!createForm.rating || isNaN(ratingNum) || ratingNum < 0 || ratingNum > 5) {
+      errors.rating = "Rating must be 0–5";
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    const invNum = Number(createForm.inventory);
+    if (!createForm.inventory || isNaN(invNum) || invNum < 0) {
+      errors.inventory = "Inventory must be ≥ 0";
+    }
+
+    setCreateErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const handleEdit = (book) => {
+  const handleCreateChange = (e) => {
+    const { name, value } = e.target;
+    setCreateForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const createBook = async () => {
+    if (!validateCreate()) return;
+
+    setLoading(true);
+
+    try {
+      await createBook2({
+        id: Number(createForm.id),
+        title: createForm.title.trim(),
+        author: createForm.author.trim(),
+        genre: createForm.genre.trim(),
+        description: createForm.description.trim(),
+        rating: Number(createForm.rating),
+        inventory: Number(createForm.inventory),
+        photo: createForm.photo.trim() || null,
+        isBorrowed: 0,
+      });
+
+      showFeedback("Book added successfully ✓");
+      setCreateForm({
+        id: "",
+        title: "",
+        author: "",
+        genre: "",
+        description: "",
+        rating: "",
+        inventory: "",
+        photo: "",
+      });
+      setCreateErrors({});
+      await loadBooks();
+    } catch (err) {
+      console.error("Create failed:", err);
+      showFeedback(err.message || "Failed to add book", true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── EDIT ──────────────────────────────────────────────────
+  const startEdit = (book) => {
     setEditingBook(book);
-    setEditTitle(book.title || "");
-    setEditAuthor(book.author || "");
-    setEditGenre(book.genre || "");
-    setEditDescription(book.description || "");
-    setEditRating(book.rating || "");
-    setEditInventory(book.inventory || "");
-    setEditPhoto(book.photo || "");
-    setErrors({});
+    setEditForm({
+      title: book.title || "",
+      author: book.author || "",
+      genre: book.genre || "",
+      description: book.description || "",
+      rating: String(book.rating ?? ""),
+      inventory: String(book.inventory ?? ""),
+      photo: book.photo || "",
+    });
+    setEditErrors({});
   };
 
-  const handleUpdate = async () => {
-    if (!editingBook) return;
-    if (!validateEditForm()) {
-      setFeedback("Please fix the errors in the update form");
-      return;
+  const validateEdit = () => {
+    const errors = {};
+
+    if (!editForm.title.trim()) errors.title = "Title is required";
+    if (!editForm.author.trim()) errors.author = "Author is required";
+    if (!editForm.genre.trim()) errors.genre = "Genre is required";
+    if (!editForm.description.trim()) errors.description = "Description is required";
+
+    const ratingNum = Number(editForm.rating);
+    if (!editForm.rating || isNaN(ratingNum) || ratingNum < 0 || ratingNum > 5) {
+      errors.rating = "Rating must be 0–5";
     }
 
-    const sureUpdate = confirm("Are you sure to update this book?");
-    if (sureUpdate) {
-      try {
-        await callUpdateBook(
-          String(editingBook.id), // Ensure id is string
-          editTitle,
-          editAuthor,
-          editGenre,
-          editDescription,
-          Number(editRating) || 0,
-          Number(editInventory) || 0,
-          editPhoto,
-          editingBook.isBorrowed
-        );
-        setFeedback("Book updated successfully!");
-        setEditingBook(null);
-        setErrors({});
-        setRefreshTrigger((prev) => !prev);
-      } catch (error) {
-        console.error("Error updating book:", error);
-        setFeedback(`Error updating book: ${error.message}`);
-      }
+    const invNum = Number(editForm.inventory);
+    if (!editForm.inventory || isNaN(invNum) || invNum < 0) {
+      errors.inventory = "Inventory must be ≥ 0";
+    }
+
+    setEditErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const updateBook = async () => {
+    if (!editingBook || !validateEdit()) return;
+
+    setLoading(true);
+
+    try {
+      await callUpdateBook(
+        editingBook.id,
+        editForm.title.trim(),
+        editForm.author.trim(),
+        editForm.genre.trim(),
+        editForm.description.trim(),
+        Number(editForm.rating),
+        Number(editForm.inventory),
+        editForm.photo.trim() || null,
+        editingBook.isBorrowed
+      );
+
+      showFeedback("Book updated ✓");
+      setEditingBook(null);
+      await loadBooks();
+    } catch (err) {
+      console.error("Update failed:", err);
+      showFeedback(err.message || "Failed to update book", true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = async (book) => {
+  // ── DELETE ────────────────────────────────────────────────
+  const deleteBook = async (book) => {
     if (book.isBorrowed > 0) {
-      setFeedback("Cannot delete a borrowed book!");
+      showFeedback("Cannot delete a borrowed book", true);
       return;
     }
 
-    const sureDelete = confirm("Are you sure to delete this book?");
-    if (sureDelete) {
-      try {
-        await callDeleteBook(String(book.id)); // Ensure id is string
-        setFeedback("Book deleted successfully!");
-        setRefreshTrigger((prev) => !prev);
-      } catch (error) {
-        console.error("Error deleting book:", error);
-        setFeedback(`Error deleting book: ${error.message}`);
-      }
-    }
-  };
+    if (!window.confirm(`Delete "${book.title}" (ID ${book.id})?`)) return;
 
-  const handleTablePhotoClick = (bookId) => {
-    if (tablePhotoRefs.current[bookId]) {
-      tablePhotoRefs.current[bookId].click();
-    }
-  };
-
-  const handleTablePhotoUpload = (bookId) => async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
-    if (!validTypes.includes(file.type)) {
-      setFeedback("Error: Only JPG, JPEG, and PNG files are allowed!");
-      return;
-    }
-
-    setTablePhotoUploading((prev) => ({ ...prev, [bookId]: true }));
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-
-    reader.onload = async () => {
-      const imageData = reader.result;
-      try {
-        await callChangeBookPhoto(String(bookId), imageData); // Ensure id is string
-        setFeedback("Photo updated successfully!");
-        setRefreshTrigger((prev) => !prev);
-      } catch (error) {
-        console.error("Error uploading photo:", error);
-        setFeedback(`Error uploading photo: ${error.message}`);
-      } finally {
-        setTablePhotoUploading((prev) => ({ ...prev, [bookId]: false }));
-      }
-    };
-    reader.onerror = () => {
-      setFeedback("Error reading image file!");
-      setTablePhotoUploading((prev) => ({ ...prev, [bookId]: false }));
-    };
-  };
-
-  const handleTablePhotoDelete = (bookId) => async () => {
+    setLoading(true);
     try {
-      await callChangeBookPhoto(String(bookId), ""); // Ensure id is string
-      setFeedback("Photo deleted successfully!");
-      setRefreshTrigger((prev) => !prev);
-    } catch (error) {
-      console.error("Error deleting photo:", error);
-      setFeedback(`Error deleting photo: ${error.message}`);
+      await callDeleteBook(book.id);
+      showFeedback("Book deleted ✓");
+      await loadBooks();
+    } catch (err) {
+      console.error("Delete failed:", err);
+      showFeedback(err.message || "Failed to delete book", true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEditPhotoClick = () => {
-    if (editPhotoInputRef.current) {
-      editPhotoInputRef.current.click();
-    }
-  };
-
-  const handleEditPhotoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
-    if (!validTypes.includes(file.type)) {
-      setFeedback("Error: Only JPG, JPEG, and PNG files are allowed!");
-      return;
-    }
-
-    setIsUploadingEditPhoto(true);
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-
-    reader.onload = async () => {
-      const imageData = reader.result;
-      setEditPhoto(imageData);
-      try {
-        await callChangeBookPhoto(String(editingBook.id), imageData); // Ensure id is string
-        setFeedback("Photo updated successfully!");
-        setRefreshTrigger((prev) => !prev);
-      } catch (error) {
-        console.error("Error uploading photo:", error);
-        setFeedback(`Error uploading photo: ${error.message}`);
-      } finally {
-        setIsUploadingEditPhoto(false);
-      }
-    };
-    reader.onerror = () => {
-      setFeedback("Error reading image file!");
-      setIsUploadingEditPhoto(false);
-    };
-  };
-
-  const handleEditPhotoDelete = async () => {
-    if (!editingBook) return;
-
-    try {
-      await callChangeBookPhoto(String(editingBook.id), ""); // Ensure id is string
-      setEditPhoto("");
-      setFeedback("Photo deleted successfully!");
-      setRefreshTrigger((prev) => !prev);
-    } catch (error) {
-      console.error("Error deleting photo:", error);
-      setFeedback(`Error deleting photo: ${error.message}`);
-    }
-  };
+  const filteredBooks = books.filter((b) =>
+    `${b.id} ${b.title} ${b.author} ${b.genre}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
 
   return (
-    <div className="bg-white text-gray-800 w-full h-screen p-6 flex flex-col md:flex-row gap-6">
-      {/* Left Side: Add New Book */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full md:w-[30%] bg-gray-50 p-6 rounded-lg shadow-md overflow-y-auto h-full pb-20"
-      >
-        <h2 className="text-2xl font-bold mb-4 text-gray-900">Add New Book</h2>
-        {feedback && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className={`mb-4 text-sm ${
-              feedback.includes("Error") ? "text-red-600" : "text-green-600"
-            }`}
-          >
-            {feedback}
-          </motion.p>
-        )}
-        <div className="space-y-4">
-          <div>
-            <input
-              type="number"
-              value={id}
-              onChange={(e) => setId(e.target.value)}
-              placeholder="Book ID (numbers only)"
-              min="1"
-              className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.id && (
-              <p className="text-red-500 text-sm mt-1">{errors.id}</p>
-            )}
-          </div>
-          <div>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title"
-              className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.title && (
-              <p className="text-red-500 text-sm mt-1">{errors.title}</p>
-            )}
-          </div>
-          <div>
-            <input
-              type="text"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="Author"
-              className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.author && (
-              <p className="text-red-500 text-sm mt-1">{errors.author}</p>
-            )}
-          </div>
-          <div>
-            <input
-              type="text"
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              placeholder="Genre"
-              className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.genre && (
-              <p className="text-red-500 text-sm mt-1">{errors.genre}</p>
-            )}
-          </div>
-          <div>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description"
-              className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows="4"
-            />
-            {errors.description && (
-              <p className="text-red-500 text-sm mt-1">{errors.description}</p>
-            )}
-          </div>
-          <div>
-            <input
-              type="number"
-              value={rating}
-              onChange={(e) => setRating(e.target.value)}
-              placeholder="Rating (0-5)"
-              min="0"
-              max="5"
-              step="0.1"
-              className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.rating && (
-              <p className="text-red-500 text-sm mt-1">{errors.rating}</p>
-            )}
-          </div>
-          <div>
-            <input
-              type="number"
-              value={inventory}
-              onChange={(e) => setInventory(e.target.value)}
-              placeholder="Inventory"
-              min="0"
-              className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.inventory && (
-              <p className="text-red-500 text-sm mt-1">{errors.inventory}</p>
-            )}
-          </div>
-          <div className="flex items-center space-x-4">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              onClick={handleNewPhotoClick}
-              className="bg-gray-200 w-24 h-36 rounded-md overflow-hidden flex items-center justify-center cursor-pointer"
-            >
-              {isUploadingNewPhoto ? (
-                <div className="w-full h-full flex justify-center items-center text-sm font-semibold text-gray-600">
-                  Uploading...
-                </div>
-              ) : newPhoto ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={newPhoto}
-                  alt="New book cover"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex justify-center items-center text-2xl font-semibold text-gray-500">
-                  ?
-                </div>
-              )}
-            </motion.div>
-            <input
-              className="hidden"
-              type="file"
-              ref={newPhotoInputRef}
-              accept="image/jpeg,image/jpg,image/png"
-              onChange={handleNewPhotoUpload}
-            />
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleNewPhotoClick}
-              className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded-md transition duration-200"
-            >
-              Upload
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleNewPhotoDelete}
-              className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-md transition duration-200"
-            >
-              Delete
-            </motion.button>
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={submitForm}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-md transition duration-200"
-            disabled={isLoading}
-          >
-            {isLoading ? "Adding..." : "Create Book"}
-          </motion.button>
-        </div>
-      </motion.div>
+    <div className="h-full overflow-auto bg-gray-50">
+      <div className="p-6 max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Admin – Book Management</h1>
 
-      {/* Right Side: Existing Books and Update Form */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full md:w-[70%] flex flex-col h-full overflow-auto pb-20"
-      >
-        <h2 className="text-2xl font-bold mb-4 text-gray-900">
-          Existing Books
-        </h2>
-        <div className="mb-4">
+        {loading && <p className="text-gray-600 mb-4">Loading...</p>}
+
+        {/* CREATE FORM */}
+        <div className="border rounded-lg p-6 mb-10 bg-white shadow-sm">
+          <h2 className="text-xl font-semibold mb-5">Add New Book</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-medium mb-1">ID</label>
+              <input
+                type="number"
+                name="id"
+                value={createForm.id}
+                onChange={handleCreateChange}
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Unique numeric ID"
+              />
+              {createErrors.id && <p className="text-red-600 text-sm mt-1">{createErrors.id}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Title</label>
+              <input
+                name="title"
+                value={createForm.title}
+                onChange={handleCreateChange}
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {createErrors.title && <p className="text-red-600 text-sm mt-1">{createErrors.title}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Author</label>
+              <input
+                name="author"
+                value={createForm.author}
+                onChange={handleCreateChange}
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {createErrors.author && <p className="text-red-600 text-sm mt-1">{createErrors.author}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Genre</label>
+              <input
+                name="genre"
+                value={createForm.genre}
+                onChange={handleCreateChange}
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {createErrors.genre && <p className="text-red-600 text-sm mt-1">{createErrors.genre}</p>}
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <textarea
+                name="description"
+                value={createForm.description}
+                onChange={handleCreateChange}
+                className="w-full border rounded px-3 py-2 h-28 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {createErrors.description && (
+                <p className="text-red-600 text-sm mt-1">{createErrors.description}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Rating (0–5)</label>
+              <input
+                type="number"
+                name="rating"
+                value={createForm.rating}
+                onChange={handleCreateChange}
+                min="0"
+                max="5"
+                step="0.1"
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {createErrors.rating && <p className="text-red-600 text-sm mt-1">{createErrors.rating}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Inventory</label>
+              <input
+                type="number"
+                name="inventory"
+                value={createForm.inventory}
+                onChange={handleCreateChange}
+                min="0"
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {createErrors.inventory && (
+                <p className="text-red-600 text-sm mt-1">{createErrors.inventory}</p>
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">Photo URL (optional)</label>
+              <input
+                name="photo"
+                value={createForm.photo}
+                onChange={handleCreateChange}
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com/cover.jpg"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={createBook}
+            disabled={loading}
+            className="mt-6 bg-blue-600 text-white px-6 py-2.5 rounded hover:bg-blue-700 disabled:opacity-50 transition"
+          >
+            Add Book
+          </button>
+        </div>
+
+        {/* SEARCH */}
+        <div className="mb-6">
           <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by ID, Title, Author, or Genre"
-            className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full max-w-md border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search by ID, title, author, genre..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="overflow-x-auto bg-gray-50 rounded-lg shadow-md">
-          <table className="w-full border-collapse min-w-[1000px]">
-            <thead>
-              <tr className="bg-blue-100 sticky top-0">
-                <th className="border-b border-gray-300 p-3 text-left">ID</th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Title
-                </th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Author
-                </th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Genre
-                </th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Description
-                </th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Rating
-                </th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Inventory
-                </th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Borrowed
-                </th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Photo
-                </th>
-                <th className="border-b border-gray-300 p-3 text-left">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBooks.length === 0 ? (
+
+        {/* BOOK LIST WITH COVER THUMBNAILS */}
+        {filteredBooks.length === 0 ? (
+          <p className="text-gray-500 italic">No books found.</p>
+        ) : (
+          <div className="overflow-x-auto border rounded-lg shadow-sm">
+            <table className="w-full min-w-[1100px] text-left border-collapse">
+              <thead className="bg-gray-100">
                 <tr>
-                  <td
-                    colSpan="10"
-                    className="border-b border-gray-300 p-3 text-center text-gray-500"
-                  >
-                    No books found
-                  </td>
+                  <th className="p-3 font-semibold w-20">Cover</th>
+                  <th className="p-3 font-semibold">ID</th>
+                  <th className="p-3 font-semibold">Title</th>
+                  <th className="p-3 font-semibold">Author</th>
+                  <th className="p-3 font-semibold">Genre</th>
+                  <th className="p-3 font-semibold">Stock</th>
+                  <th className="p-3 font-semibold">Actions</th>
                 </tr>
-              ) : (
-                filteredBooks.map((book, index) => (
-                  <tr
-                    key={`${book.id}-${index}`}
-                    className={`hover:bg-blue-50 ${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-100"
-                    }`}
-                  >
-                    <td className="border-b border-gray-300 p-3">{book.id}</td>
-                    <td className={`${colors.textKey} font-bold border-b border-gray-300 p-3`}>
-                      {book.title || "N/A"}
-                    </td>
-                    <td className="border-b border-gray-300 p-3">
-                      {book.author || "N/A"}
-                    </td>
-                    <td className="border-b border-gray-300 p-3">
-                      {book.genre || "N/A"}
-                    </td>
-                    <td className="border-b border-gray-300 p-3">
-                      {book.description || "N/A"}
-                    </td>
-                    <td className="border-b border-gray-300 p-3">
-                      {book.rating ?? "0"}
-                    </td>
-                    <td className="border-b border-gray-300 p-3">
-                      {book.inventory ?? "0"}
-                    </td>
-                    <td className="border-b border-gray-300 p-3">
-                      {book.isBorrowed ? book.isBorrowed : book.isBorrowed}
-                    </td>
-                    <td className="border-b border-gray-300 p-3">
-                      <div className="flex items-center space-x-2">
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          onClick={() => handleTablePhotoClick(book.id)}
-                          className="bg-gray-200 w-24 h-20 rounded-md overflow-hidden flex items-center justify-center cursor-pointer"
-                        >
-                          {tablePhotoUploading[book.id] ? (
-                            <div className="w-full h-full flex justify-center items-center text-sm font-semibold text-gray-600">
-                              Uploading...
-                            </div>
-                          ) : book.photo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={book.photo}
-                              alt="Book cover"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex justify-center items-center text-2xl font-semibold text-gray-500">
-                              ?
-                            </div>
-                          )}
-                        </motion.div>
-                        <input
-                          className="hidden"
-                          type="file"
-                          ref={(el) => (tablePhotoRefs.current[book.id] = el)}
-                          accept="image/jpeg,image/jpg,image/png"
-                          onChange={handleTablePhotoUpload(book.id)}
+              </thead>
+              <tbody>
+                {filteredBooks.map((b) => (
+                  <tr key={b.id} className="border-t hover:bg-gray-50">
+                    <td className="p-3">
+                      {b.photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={b.photo}
+                          alt={`${b.title} cover`}
+                          className="w-16 h-24 object-cover rounded shadow-sm"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://via.placeholder.com/64x96?text=No+Cover";
+                          }}
                         />
-                        {/* <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleTablePhotoClick(book.id)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded-md transition duration-200"
-                        >
-                          Upload
-                        </motion.button> */}
-                        {/* <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleTablePhotoDelete(book.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded-md transition duration-200"
-                        >
-                          Delete
-                        </motion.button> */}
-                      </div>
+                      ) : (
+                        <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
+                          No cover
+                        </div>
+                      )}
                     </td>
-                    <td className="border-b border-gray-300 p-3">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleEdit(book)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded-md mr-2 transition duration-200"
+                    <td className="p-3">{b.id}</td>
+                    <td className="p-3 font-medium">{b.title}</td>
+                    <td className="p-3">{b.author}</td>
+                    <td className="p-3">{b.genre}</td>
+                    <td className="p-3">{b.inventory}</td>
+                    <td className="p-3 whitespace-nowrap">
+                      <button
+                        onClick={() => startEdit(b)}
+                        className="text-blue-600 hover:underline mr-4"
                       >
                         Edit
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleDelete(book)}
-                        className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-md transition duration-200"
+                      </button>
+                      <button
+                        onClick={() => deleteBook(b)}
+                        className="text-red-600 hover:underline disabled:opacity-50"
+                        disabled={b.isBorrowed > 0}
                       >
                         Delete
-                      </motion.button>
+                      </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-        {/* Update Form */}
-        {editingBook && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mt-6 bg-gray-50 p-6 rounded-lg shadow-md"
+      {/* ── FEEDBACK POPUP ──────────────────────────────────────── */}
+      {isFeedbackVisible && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div
+            className={`pointer-events-auto transform transition-all duration-300 ease-out
+              ${isError ? "bg-red-600" : "bg-green-600"} 
+              text-white px-8 py-5 rounded-xl shadow-2xl border border-opacity-30
+              max-w-md w-full mx-4 text-center font-medium text-lg
+              animate-[fadeIn_0.4s_ease-out]`}
           >
-            <h3 className="text-xl font-bold mb-4 text-gray-900">
-              Update Book: {editingBook.id}
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder="Title"
-                  className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.editTitle && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.editTitle}
-                  </p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="text"
-                  value={editAuthor}
-                  onChange={(e) => setEditAuthor(e.target.value)}
-                  placeholder="Author"
-                  className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.editAuthor && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.editAuthor}
-                  </p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="text"
-                  value={editGenre}
-                  onChange={(e) => setEditGenre(e.target.value)}
-                  placeholder="Genre"
-                  className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.editGenre && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.editGenre}
-                  </p>
-                )}
-              </div>
-              <div>
-                <textarea
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Description"
-                  className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows="4"
-                />
-                {errors.editDescription && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.editDescription}
-                  </p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="number"
-                  value={editRating}
-                  onChange={(e) => setEditRating(e.target.value)}
-                  placeholder="Rating (0-5)"
-                  min="0"
-                  max="5"
-                  step="0.1"
-                  className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.editRating && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.editRating}
-                  </p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="number"
-                  value={editInventory}
-                  onChange={(e) => setEditInventory(e.target.value)}
-                  placeholder="Inventory"
-                  min="0"
-                  className="w-full p-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.editInventory && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.editInventory}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center space-x-4">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  onClick={handleEditPhotoClick}
-                  className="bg-gray-200 w-24 h-20 rounded-md overflow-hidden flex items-center justify-center cursor-pointer"
-                >
-                  {isUploadingEditPhoto ? (
-                    <div className="w-full h-full flex justify-center items-center text-sm font-semibold text-gray-600">
-                      Uploading...
+            {feedback}
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL WITH PHOTO PREVIEW */}
+      {editingBook && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setEditingBook(null)}
+          />
+
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div
+              className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col md:flex-row gap-8 mb-8">
+                {/* Photo preview */}
+                <div className="md:w-1/3 flex flex-col items-center">
+                  <div className="w-full aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden border border-gray-300 shadow-inner">
+                    {editForm.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={editForm.photo}
+                        alt="Book cover preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://via.placeholder.com/300x400?text=Invalid+URL";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
+                        Enter photo URL above
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Live preview</p>
+                </div>
+
+                {/* Form fields */}
+                <div className="md:w-2/3">
+                  <h2 className="text-2xl font-bold mb-6">
+                    Edit Book #{editingBook.id}
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Title</label>
+                      <input
+                        name="title"
+                        value={editForm.title}
+                        onChange={handleEditChange}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      {editErrors.title && <p className="text-red-600 text-sm mt-1">{editErrors.title}</p>}
                     </div>
-                  ) : editPhoto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={editPhoto}
-                      alt="Book cover"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex justify-center items-center text-2xl font-semibold text-gray-500">
-                      ?
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Author</label>
+                      <input
+                        name="author"
+                        value={editForm.author}
+                        onChange={handleEditChange}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      {editErrors.author && <p className="text-red-600 text-sm mt-1">{editErrors.author}</p>}
                     </div>
-                  )}
-                </motion.div>
-                <input
-                  className="hidden"
-                  type="file"
-                  ref={editPhotoInputRef}
-                  accept="image/jpeg,image/jpg,image/png"
-                  onChange={handleEditPhotoUpload}
-                />
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleEditPhotoClick}
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded-md transition duration-200"
-                >
-                  Upload
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleEditPhotoDelete}
-                  className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-md transition duration-200"
-                >
-                  Delete
-                </motion.button>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Genre</label>
+                      <input
+                        name="genre"
+                        value={editForm.genre}
+                        onChange={handleEditChange}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      {editErrors.genre && <p className="text-red-600 text-sm mt-1">{editErrors.genre}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Rating (0–5)</label>
+                      <input
+                        type="number"
+                        name="rating"
+                        value={editForm.rating}
+                        onChange={handleEditChange}
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      {editErrors.rating && <p className="text-red-600 text-sm mt-1">{editErrors.rating}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Inventory</label>
+                      <input
+                        type="number"
+                        name="inventory"
+                        value={editForm.inventory}
+                        onChange={handleEditChange}
+                        min="0"
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      {editErrors.inventory && (
+                        <p className="text-red-600 text-sm mt-1">{editErrors.inventory}</p>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <textarea
+                        name="description"
+                        value={editForm.description}
+                        onChange={handleEditChange}
+                        className="w-full border rounded px-3 py-2 h-28 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      {editErrors.description && (
+                        <p className="text-red-600 text-sm mt-1">{editErrors.description}</p>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-1">Photo URL</label>
+                      <input
+                        name="photo"
+                        value={editForm.photo}
+                        onChange={handleEditChange}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="https://example.com/cover.jpg or https://..."
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Paste a direct image link (jpg, png, webp)
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex space-x-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleUpdate}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition duration-200"
-                >
-                  Update Book
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+
+              <div className="flex gap-4 justify-end">
+                <button
                   onClick={() => setEditingBook(null)}
-                  className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md transition duration-200"
+                  className="bg-gray-600 text-white px-6 py-2.5 rounded hover:bg-gray-700 transition"
                 >
                   Cancel
-                </motion.button>
+                </button>
+                <button
+                  onClick={updateBook}
+                  disabled={loading}
+                  className="bg-green-600 text-white px-6 py-2.5 rounded hover:bg-green-700 disabled:opacity-50 transition"
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
-          </motion.div>
-        )}
-      </motion.div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

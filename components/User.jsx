@@ -333,10 +333,10 @@ export default function User() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleBorrow}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition duration-200"
+                className={`text-white font-semibold py-2 px-4 rounded-md transition duration-200 ${isLoading ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}`}
                 disabled={isLoading}
               >
-                {isLoading ? "Borrowing..." : "Borrow Book"}
+                {isLoading ? "Returning..." : "Borrow Book"}
               </motion.button>
             ) : (
               <p className="text-red-600">
@@ -352,10 +352,10 @@ export default function User() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleReturn}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md transition duration-200"
+                className={`text-white font-semibold py-2 px-4 rounded-md transition duration-200 ${isLoading ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"}`}
                 disabled={isLoading}
               >
-                {isLoading ? "Returning..." : "Return Book"}
+                {isLoading ? "Borrowing..." : "Return Book"}
               </motion.button>
             )}
           </div>
