@@ -1,6 +1,6 @@
+import Navbar from "@/components/Navbar";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import AuthProvider from "./providers/AuthProvider";
 
 import { dbConnect } from "@/services/mongo";
@@ -18,14 +18,14 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-          <ThemeProvider>
-            <AuthProvider>
-              <div className="h-screen overflow-hidden">
-                <Navbar />
-                <div className="h-[90%] overflow-hidden">{children}</div>
-              </div>
-            </AuthProvider>
-          </ThemeProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <div className="min-h-screen">
+              <Navbar />
+              <div className="min-h-[90%]">{children}</div>
+            </div>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

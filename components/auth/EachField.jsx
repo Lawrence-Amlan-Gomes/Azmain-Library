@@ -1,3 +1,6 @@
+"use client";
+import { motion } from "framer-motion";
+
 const EachField = ({
   label,
   isReal,
@@ -13,32 +16,72 @@ const EachField = ({
     <>
       {isReal ? (
         <div>
-          <div className="sm:text-[18px] xl:text-[20px] font-bold tracking-wider mb-1 text-start mt-5">{value != "" ? label : ""}</div>
-          <input
-            className={`p-3 border-[2px] sm:text-[16px] xl:text-[18px] box-border w-full rounded-md focus:outline-none focus:outline-[1px] focus:shadow-none bg-transparent placeholder:text-zinc-400 ${
-              !iserror
-                ? "border-green-700 text-green-600 focus:outline-green-600"
-                : "border-red-600 text-red-600 focus:outline-red-600"
-            }`}
-            type={type}
-            value={value}
-            name={name}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={placeholder}
-            autoComplete="off"
-          />
+          <div className="text-sm font-semibold text-accent-700 mb-2 text-start">
+            {value != "" ? label : ""}
+          </div>
+          <div className="relative">
+            <input
+              className={`input-field text-base w-full transition-all duration-200 ${
+                !iserror
+                  ? "border-primary-300 text-accent-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                  : "border-secondary-300 text-accent-900 focus:border-secondary-500 focus:ring-2 focus:ring-secondary-200"
+              }`}
+              type={type}
+              value={value}
+              name={name}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={placeholder}
+              autoComplete="off"
+            />
+            {!iserror && value && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <svg
+                  className="w-5 h-5 text-primary-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+            )}
+            {iserror && value && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <svg
+                  className="w-5 h-5 text-secondary-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </div>
+            )}
+          </div>
           {iserror ? (
-            <div className="text-red-600 mt-1 text-start sm:text-[14px] xl:text-[16px] w-full">
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-secondary-600 mt-2 text-start text-sm font-medium"
+            >
               {error}
-            </div>
-          ) : (
-            <></>
-          )}
+            </motion.div>
+          ) : null}
         </div>
       ) : (
         <div>
           <input
-            className={`h-[1px] w-[1px] float-left`}
+            className="h-[1px] w-[1px] float-left"
             type={type}
             value={value}
             name={name}

@@ -1,14 +1,14 @@
 "use client";
 
 import {
+  callDeleteBook,
+  callUpdateBook,
   createBook2,
   getAllBooks2,
-  callUpdateBook,
-  callDeleteBook,
 } from "@/app/actions";
-import { useEffect, useState } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Admin() {
   const { auth } = useAuth();
@@ -70,7 +70,8 @@ export default function Admin() {
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = "100%";
 
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
@@ -95,7 +96,7 @@ export default function Admin() {
   // Load books
   useEffect(() => {
     loadBooks();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadBooks = async () => {
@@ -131,10 +132,16 @@ export default function Admin() {
     if (!createForm.title.trim()) errors.title = "Title is required";
     if (!createForm.author.trim()) errors.author = "Author is required";
     if (!createForm.genre.trim()) errors.genre = "Genre is required";
-    if (!createForm.description.trim()) errors.description = "Description is required";
+    if (!createForm.description.trim())
+      errors.description = "Description is required";
 
     const ratingNum = Number(createForm.rating);
-    if (!createForm.rating || isNaN(ratingNum) || ratingNum < 0 || ratingNum > 5) {
+    if (
+      !createForm.rating ||
+      isNaN(ratingNum) ||
+      ratingNum < 0 ||
+      ratingNum > 5
+    ) {
       errors.rating = "Rating must be 0–5";
     }
 
@@ -212,10 +219,16 @@ export default function Admin() {
     if (!editForm.title.trim()) errors.title = "Title is required";
     if (!editForm.author.trim()) errors.author = "Author is required";
     if (!editForm.genre.trim()) errors.genre = "Genre is required";
-    if (!editForm.description.trim()) errors.description = "Description is required";
+    if (!editForm.description.trim())
+      errors.description = "Description is required";
 
     const ratingNum = Number(editForm.rating);
-    if (!editForm.rating || isNaN(ratingNum) || ratingNum < 0 || ratingNum > 5) {
+    if (
+      !editForm.rating ||
+      isNaN(ratingNum) ||
+      ratingNum < 0 ||
+      ratingNum > 5
+    ) {
       errors.rating = "Rating must be 0–5";
     }
 
@@ -248,7 +261,7 @@ export default function Admin() {
         Number(editForm.rating),
         Number(editForm.inventory),
         editForm.photo.trim() || null,
-        editingBook.isBorrowed
+        editingBook.isBorrowed,
       );
 
       showFeedback("Book updated ✓");
@@ -287,82 +300,182 @@ export default function Admin() {
   const filteredBooks = books.filter((b) =>
     `${b.id} ${b.title} ${b.author} ${b.genre}`
       .toLowerCase()
-      .includes(search.toLowerCase())
+      .includes(search.toLowerCase()),
   );
 
   return (
-    <div className="h-full overflow-auto bg-gray-50">
-      <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Admin – Book Management</h1>
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-slate-100 overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-20 -left-20 w-60 h-60 bg-primary-200/20 rounded-full blur-3xl animate-bounce-subtle"></div>
+        <div
+          className="absolute -bottom-20 -right-20 w-80 h-80 bg-secondary-200/20 rounded-full blur-3xl animate-bounce-subtle"
+          style={{ animationDelay: "1s" }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/4 w-40 h-40 bg-accent-200/20 rounded-full blur-3xl animate-bounce-subtle"
+          style={{ animationDelay: "2s" }}
+        ></div>
+      </div>
 
-        {loading && <p className="text-gray-600 mb-4">Loading...</p>}
+      <div className="relative container mx-auto px-6 py-8">
+        <div className="mb-8">
+          <div className="flex items-center mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center mr-4">
+              <svg
+                className="w-7 h-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gradient">
+                Admin – Book Management
+              </h1>
+              <p className="text-accent-600">
+                Manage your library&apos;s book collection
+              </p>
+            </div>
+          </div>
+
+          {loading && (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mr-3"></div>
+              <span className="text-accent-600">Loading books...</span>
+            </div>
+          )}
+        </div>
 
         {/* CREATE FORM */}
-        <div className="border rounded-lg p-6 mb-10 bg-white shadow-sm">
-          <h2 className="text-xl font-semibold mb-5">Add New Book</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="glass-morphism rounded-3xl shadow-strong p-8 mb-10 border border-white/50">
+          <div className="flex items-center mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center mr-3">
+              <svg
+                className="w-6 h-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+            </div>
             <div>
-              <label className="block text-sm font-medium mb-1">ID</label>
+              <h2 className="text-2xl font-bold text-gradient">Add New Book</h2>
+              <p className="text-accent-600">
+                Create a new book entry for the library
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-accent-700 mb-2">
+                ID
+              </label>
               <input
                 type="number"
                 name="id"
                 value={createForm.id}
                 onChange={handleCreateChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input-field"
                 placeholder="Unique numeric ID"
               />
-              {createErrors.id && <p className="text-red-600 text-sm mt-1">{createErrors.id}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
-              <input
-                name="title"
-                value={createForm.title}
-                onChange={handleCreateChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {createErrors.title && <p className="text-red-600 text-sm mt-1">{createErrors.title}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Author</label>
-              <input
-                name="author"
-                value={createForm.author}
-                onChange={handleCreateChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {createErrors.author && <p className="text-red-600 text-sm mt-1">{createErrors.author}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Genre</label>
-              <input
-                name="genre"
-                value={createForm.genre}
-                onChange={handleCreateChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {createErrors.genre && <p className="text-red-600 text-sm mt-1">{createErrors.genre}</p>}
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                name="description"
-                value={createForm.description}
-                onChange={handleCreateChange}
-                className="w-full border rounded px-3 py-2 h-28 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {createErrors.description && (
-                <p className="text-red-600 text-sm mt-1">{createErrors.description}</p>
+              {createErrors.id && (
+                <p className="text-secondary-600 text-sm mt-1">
+                  {createErrors.id}
+                </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Rating (0–5)</label>
+              <label className="block text-sm font-semibold text-accent-700 mb-2">
+                Title
+              </label>
+              <input
+                name="title"
+                value={createForm.title}
+                onChange={handleCreateChange}
+                className="input-field"
+                placeholder="Enter book title"
+              />
+              {createErrors.title && (
+                <p className="text-secondary-600 text-sm mt-1">
+                  {createErrors.title}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-accent-700 mb-2">
+                Author
+              </label>
+              <input
+                name="author"
+                value={createForm.author}
+                onChange={handleCreateChange}
+                className="input-field"
+                placeholder="Enter author name"
+              />
+              {createErrors.author && (
+                <p className="text-secondary-600 text-sm mt-1">
+                  {createErrors.author}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-accent-700 mb-2">
+                Genre
+              </label>
+              <input
+                name="genre"
+                value={createForm.genre}
+                onChange={handleCreateChange}
+                className="input-field"
+                placeholder="Enter book genre"
+              />
+              {createErrors.genre && (
+                <p className="text-secondary-600 text-sm mt-1">
+                  {createErrors.genre}
+                </p>
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-accent-700 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={createForm.description}
+                onChange={handleCreateChange}
+                className="input-field h-32 resize-none"
+                placeholder="Enter book description"
+              />
+              {createErrors.description && (
+                <p className="text-secondary-600 text-sm mt-1">
+                  {createErrors.description}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-accent-700 mb-2">
+                Rating (0–5)
+              </label>
               <input
                 type="number"
                 name="rating"
@@ -371,33 +484,45 @@ export default function Admin() {
                 min="0"
                 max="5"
                 step="0.1"
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input-field"
+                placeholder="0.0 - 5.0"
               />
-              {createErrors.rating && <p className="text-red-600 text-sm mt-1">{createErrors.rating}</p>}
+              {createErrors.rating && (
+                <p className="text-secondary-600 text-sm mt-1">
+                  {createErrors.rating}
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Inventory</label>
+              <label className="block text-sm font-semibold text-accent-700 mb-2">
+                Inventory
+              </label>
               <input
                 type="number"
                 name="inventory"
                 value={createForm.inventory}
                 onChange={handleCreateChange}
                 min="0"
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input-field"
+                placeholder="Number of copies"
               />
               {createErrors.inventory && (
-                <p className="text-red-600 text-sm mt-1">{createErrors.inventory}</p>
+                <p className="text-secondary-600 text-sm mt-1">
+                  {createErrors.inventory}
+                </p>
               )}
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Photo URL (optional)</label>
+              <label className="block text-sm font-semibold text-accent-700 mb-2">
+                Photo URL (optional)
+              </label>
               <input
                 name="photo"
                 value={createForm.photo}
                 onChange={handleCreateChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input-field"
                 placeholder="https://example.com/cover.jpg"
               />
             </div>
@@ -406,84 +531,238 @@ export default function Admin() {
           <button
             onClick={createBook}
             disabled={loading}
-            className="mt-6 bg-blue-600 text-white px-6 py-2.5 rounded hover:bg-blue-700 disabled:opacity-50 transition"
+            className="mt-6 btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Add Book
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Adding Book...
+              </>
+            ) : (
+              <>
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                Add Book
+              </>
+            )}
           </button>
         </div>
 
         {/* SEARCH */}
-        <div className="mb-6">
-          <input
-            className="w-full max-w-md border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Search by ID, title, author, genre..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="mb-8">
+          <div className="glass-morphism rounded-2xl shadow-soft p-4 max-w-2xl mx-auto">
+            <div className="flex items-center">
+              <svg
+                className="w-5 h-5 text-accent-400 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                className="input-field border-0 bg-transparent focus:ring-0 text-base"
+                placeholder="Search by ID, title, author, genre..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
 
         {/* BOOK LIST WITH COVER THUMBNAILS */}
         {filteredBooks.length === 0 ? (
-          <p className="text-gray-500 italic">No books found.</p>
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-accent-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-10 h-10 text-accent-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-accent-900 mb-2">
+              No books found
+            </h3>
+            <p className="text-accent-600">
+              Try adjusting your search criteria or add new books to the library
+            </p>
+          </div>
         ) : (
-          <div className="overflow-x-auto border rounded-lg shadow-sm">
-            <table className="w-full min-w-[1100px] text-left border-collapse">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-3 font-semibold w-20">Cover</th>
-                  <th className="p-3 font-semibold">ID</th>
-                  <th className="p-3 font-semibold">Title</th>
-                  <th className="p-3 font-semibold">Author</th>
-                  <th className="p-3 font-semibold">Genre</th>
-                  <th className="p-3 font-semibold">Stock</th>
-                  <th className="p-3 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBooks.map((b) => (
-                  <tr key={b.id} className="border-t hover:bg-gray-50">
-                    <td className="p-3">
-                      {b.photo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={b.photo}
-                          alt={`${b.title} cover`}
-                          className="w-16 h-24 object-cover rounded shadow-sm"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://via.placeholder.com/64x96?text=No+Cover";
-                          }}
-                        />
-                      ) : (
-                        <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
-                          No cover
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3">{b.id}</td>
-                    <td className="p-3 font-medium">{b.title}</td>
-                    <td className="p-3">{b.author}</td>
-                    <td className="p-3">{b.genre}</td>
-                    <td className="p-3">{b.inventory}</td>
-                    <td className="p-3 whitespace-nowrap">
-                      <button
-                        onClick={() => startEdit(b)}
-                        className="text-blue-600 hover:underline mr-4"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteBook(b)}
-                        className="text-red-600 hover:underline disabled:opacity-50"
-                        disabled={b.isBorrowed > 0}
-                      >
-                        Delete
-                      </button>
-                    </td>
+          <div className="glass-morphism rounded-3xl shadow-strong border border-white/50 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-accent-50 border-b border-accent-200">
+                  <tr>
+                    <th className="p-4 font-semibold text-accent-900 w-24">
+                      Cover
+                    </th>
+                    <th className="p-4 font-semibold text-accent-900">ID</th>
+                    <th className="p-4 font-semibold text-accent-900">Title</th>
+                    <th className="p-4 font-semibold text-accent-900">
+                      Author
+                    </th>
+                    <th className="p-4 font-semibold text-accent-900">Genre</th>
+                    <th className="p-4 font-semibold text-accent-900">Stock</th>
+                    <th className="p-4 font-semibold text-accent-900 text-right">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredBooks.map((b, index) => (
+                    <tr
+                      key={b.id}
+                      className="border-b border-accent-100 hover:bg-accent-50/50 transition-colors duration-200"
+                    >
+                      <td className="p-4">
+                        <div className="w-16 h-24 bg-gradient-to-br from-accent-100 to-accent-200 rounded-lg overflow-hidden shadow-soft">
+                          {b.photo ? (
+                            <img
+                              src={b.photo}
+                              alt={`${b.title} cover`}
+                              className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src =
+                                  "https://via.placeholder.com/64x96?text=No+Cover";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <svg
+                                className="w-8 h-8 text-accent-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className="inline-block px-2 py-1 bg-accent-100 text-accent-700 rounded-lg text-sm font-medium">
+                          {b.id}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-semibold text-accent-900">
+                          {b.title}
+                        </div>
+                      </td>
+                      <td className="p-4 text-accent-700">{b.author}</td>
+                      <td className="p-4">
+                        <span className="inline-block px-3 py-1 bg-gradient-to-r from-accent-100 to-primary-100 text-accent-700 rounded-lg text-sm font-medium">
+                          {b.genre}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center">
+                          <div
+                            className={`w-2 h-2 rounded-full mr-2 ${
+                              b.inventory > 5
+                                ? "bg-green-500"
+                                : b.inventory > 0
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
+                            }`}
+                          ></div>
+                          <span
+                            className={`font-medium ${
+                              b.inventory > 5
+                                ? "text-green-700"
+                                : b.inventory > 0
+                                  ? "text-yellow-700"
+                                  : "text-red-700"
+                            }`}
+                          >
+                            {b.inventory}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => startEdit(b)}
+                            className="btn-secondary text-sm px-3 py-1.5 flex items-center"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteBook(b)}
+                            className="bg-secondary-100 text-secondary-700 hover:bg-secondary-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm px-3 py-1.5 rounded-lg font-medium transition-all duration-200 flex items-center"
+                            disabled={b.isBorrowed > 0}
+                            title={
+                              b.isBorrowed > 0
+                                ? "Cannot delete book that is currently borrowed"
+                                : "Delete book"
+                            }
+                          >
+                            <svg
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -492,13 +771,54 @@ export default function Admin() {
       {isFeedbackVisible && (
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
           <div
-            className={`pointer-events-auto transform transition-all duration-300 ease-out
-              ${isError ? "bg-red-600" : "bg-green-600"} 
-              text-white px-8 py-5 rounded-xl shadow-2xl border border-opacity-30
-              max-w-md w-full mx-4 text-center font-medium text-lg
-              animate-[fadeIn_0.4s_ease-out]`}
+            className={`pointer-events-auto transform transition-all duration-300 ease-out glass-morphism rounded-2xl shadow-strong p-6 max-w-md w-full mx-4 text-center border border-white/50 ${
+              isError
+                ? "bg-secondary-50 border-secondary-200"
+                : "bg-primary-50 border-primary-200"
+            }`}
           >
-            {feedback}
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                isError ? "bg-secondary-100" : "bg-primary-100"
+              }`}
+            >
+              {isError ? (
+                <svg
+                  className="w-6 h-6 text-secondary-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-6 h-6 text-primary-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
+            </div>
+            <p
+              className={`text-lg font-semibold ${
+                isError ? "text-secondary-700" : "text-primary-700"
+              }`}
+            >
+              {feedback}
+            </p>
           </div>
         </div>
       )}
@@ -507,81 +827,165 @@ export default function Admin() {
       {editingBook && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
             onClick={() => setEditingBook(null)}
           />
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <div
-              className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto pointer-events-auto"
+              className="glass-morphism rounded-3xl shadow-strong p-8 w-full max-w-5xl max-h-[90vh] overflow-y-auto pointer-events-auto border border-white/50"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col md:flex-row gap-8 mb-8">
-                {/* Photo preview */}
-                <div className="md:w-1/3 flex flex-col items-center">
-                  <div className="w-full aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden border border-gray-300 shadow-inner">
-                    {editForm.photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={editForm.photo}
-                        alt="Book cover preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "https://via.placeholder.com/300x400?text=Invalid+URL";
-                        }}
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center mr-4">
+                    <svg
+                      className="w-7 h-7 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
-                        Enter photo URL above
-                      </div>
-                    )}
+                    </svg>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Live preview</p>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gradient">
+                      Edit Book #{editingBook.id}
+                    </h2>
+                    <p className="text-accent-600">
+                      Update book information and details
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingBook(null)}
+                  className="text-accent-400 hover:text-accent-600 transition-colors duration-200"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* Photo preview */}
+                <div className="lg:w-1/3">
+                  <div className="sticky top-8">
+                    <div className="w-full aspect-[3/4] bg-gradient-to-br from-accent-100 to-accent-200 rounded-2xl overflow-hidden border border-accent-200 shadow-soft">
+                      {editForm.photo ? (
+                        <img
+                          src={editForm.photo}
+                          alt="Book cover preview"
+                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://via.placeholder.com/300x400?text=Invalid+URL";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-accent-500">
+                          <svg
+                            className="w-16 h-16 mb-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <p className="text-sm font-medium">
+                            Enter photo URL above
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-accent-600 mt-3 text-center">
+                      Live preview
+                    </p>
+                  </div>
                 </div>
 
                 {/* Form fields */}
-                <div className="md:w-2/3">
-                  <h2 className="text-2xl font-bold mb-6">
-                    Edit Book #{editingBook.id}
-                  </h2>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="lg:w-2/3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Title</label>
+                      <label className="block text-sm font-semibold text-accent-700 mb-2">
+                        Title
+                      </label>
                       <input
                         name="title"
                         value={editForm.title}
                         onChange={handleEditChange}
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="input-field"
+                        placeholder="Enter book title"
                       />
-                      {editErrors.title && <p className="text-red-600 text-sm mt-1">{editErrors.title}</p>}
+                      {editErrors.title && (
+                        <p className="text-secondary-600 text-sm mt-1">
+                          {editErrors.title}
+                        </p>
+                      )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Author</label>
+                      <label className="block text-sm font-semibold text-accent-700 mb-2">
+                        Author
+                      </label>
                       <input
                         name="author"
                         value={editForm.author}
                         onChange={handleEditChange}
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="input-field"
+                        placeholder="Enter author name"
                       />
-                      {editErrors.author && <p className="text-red-600 text-sm mt-1">{editErrors.author}</p>}
+                      {editErrors.author && (
+                        <p className="text-secondary-600 text-sm mt-1">
+                          {editErrors.author}
+                        </p>
+                      )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Genre</label>
+                      <label className="block text-sm font-semibold text-accent-700 mb-2">
+                        Genre
+                      </label>
                       <input
                         name="genre"
                         value={editForm.genre}
                         onChange={handleEditChange}
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="input-field"
+                        placeholder="Enter book genre"
                       />
-                      {editErrors.genre && <p className="text-red-600 text-sm mt-1">{editErrors.genre}</p>}
+                      {editErrors.genre && (
+                        <p className="text-secondary-600 text-sm mt-1">
+                          {editErrors.genre}
+                        </p>
+                      )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Rating (0–5)</label>
+                      <label className="block text-sm font-semibold text-accent-700 mb-2">
+                        Rating (0–5)
+                      </label>
                       <input
                         type="number"
                         name="rating"
@@ -590,70 +994,106 @@ export default function Admin() {
                         min="0"
                         max="5"
                         step="0.1"
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="input-field"
+                        placeholder="0.0 - 5.0"
                       />
-                      {editErrors.rating && <p className="text-red-600 text-sm mt-1">{editErrors.rating}</p>}
+                      {editErrors.rating && (
+                        <p className="text-secondary-600 text-sm mt-1">
+                          {editErrors.rating}
+                        </p>
+                      )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Inventory</label>
+                      <label className="block text-sm font-semibold text-accent-700 mb-2">
+                        Inventory
+                      </label>
                       <input
                         type="number"
                         name="inventory"
                         value={editForm.inventory}
                         onChange={handleEditChange}
                         min="0"
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="input-field"
+                        placeholder="Number of copies"
                       />
                       {editErrors.inventory && (
-                        <p className="text-red-600 text-sm mt-1">{editErrors.inventory}</p>
+                        <p className="text-secondary-600 text-sm mt-1">
+                          {editErrors.inventory}
+                        </p>
                       )}
                     </div>
 
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium mb-1">Description</label>
-                      <textarea
-                        name="description"
-                        value={editForm.description}
-                        onChange={handleEditChange}
-                        className="w-full border rounded px-3 py-2 h-28 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                      {editErrors.description && (
-                        <p className="text-red-600 text-sm mt-1">{editErrors.description}</p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium mb-1">Photo URL</label>
+                    <div>
+                      <label className="block text-sm font-semibold text-accent-700 mb-2">
+                        Photo URL
+                      </label>
                       <input
                         name="photo"
                         value={editForm.photo}
                         onChange={handleEditChange}
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="https://example.com/cover.jpg or https://..."
+                        className="input-field"
+                        placeholder="https://example.com/cover.jpg"
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Paste a direct image link (jpg, png, webp)
-                      </p>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-accent-700 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        name="description"
+                        value={editForm.description}
+                        onChange={handleEditChange}
+                        className="input-field h-32 resize-none"
+                        placeholder="Enter book description"
+                      />
+                      {editErrors.description && (
+                        <p className="text-secondary-600 text-sm mt-1">
+                          {editErrors.description}
+                        </p>
+                      )}
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="flex gap-4 justify-end">
-                <button
-                  onClick={() => setEditingBook(null)}
-                  className="bg-gray-600 text-white px-6 py-2.5 rounded hover:bg-gray-700 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={updateBook}
-                  disabled={loading}
-                  className="bg-green-600 text-white px-6 py-2.5 rounded hover:bg-green-700 disabled:opacity-50 transition"
-                >
-                  Save Changes
-                </button>
+                  <div className="flex justify-end space-x-4 mt-8">
+                    <button
+                      onClick={() => setEditingBook(null)}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={updateBook}
+                      disabled={loading}
+                      className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          Update Book
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

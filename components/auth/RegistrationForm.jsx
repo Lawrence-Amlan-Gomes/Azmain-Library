@@ -1,33 +1,36 @@
 "use client";
 import { getAllUsers2, registerUser } from "@/app/actions";
 import { useTheme } from "@/app/hooks/useTheme";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import EachField from "./EachField";
-import { motion } from "framer-motion";
-import colors from "@/app/colors";
 
 async function hashPassword(password, iterations = 10000) {
-    try {
-        const fixedSalt = 'fixedSalt1234567890abcdef';
-        const encodedPassword = new TextEncoder().encode(password);
-        const encodedSalt = new TextEncoder().encode(fixedSalt);
-        
-        const combined = new Uint8Array(encodedPassword.length + encodedSalt.length);
-        combined.set(encodedPassword, 0);
-        combined.set(encodedSalt, encodedPassword.length);
-        
-        let data = combined;
-        for (let i = 0; i < iterations; i++) {
-            data = new Uint8Array(await crypto.subtle.digest('SHA-256', data));
-        }
-        
-        const hash = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
-        return hash;
-    } catch (error) {
-        console.error('Error hashing password:', error);
-        throw error;
+  try {
+    const fixedSalt = "fixedSalt1234567890abcdef";
+    const encodedPassword = new TextEncoder().encode(password);
+    const encodedSalt = new TextEncoder().encode(fixedSalt);
+
+    const combined = new Uint8Array(
+      encodedPassword.length + encodedSalt.length,
+    );
+    combined.set(encodedPassword, 0);
+    combined.set(encodedSalt, encodedPassword.length);
+
+    let data = combined;
+    for (let i = 0; i < iterations; i++) {
+      data = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
     }
+
+    const hash = Array.from(data)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return hash;
+  } catch (error) {
+    console.error("Error hashing password:", error);
+    throw error;
+  }
 }
 
 const RegistrationForm = () => {
@@ -162,39 +165,94 @@ const RegistrationForm = () => {
           submitForm();
         }
       }}
-      className={`h-full w-full sm:p-0 p-[5%] overflow-y-auto lg:overflow-hidden lg:flex lg:justify-center lg:items-center ${
-        theme ? "bg-[#ffffff] text-[#0a0a0a]" : "bg-[#000000] text-[#ebebeb]"
-      }`}
+      className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-slate-100 overflow-hidden flex justify-center items-center p-4"
     >
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-20 -left-20 w-60 h-60 bg-primary-200/20 rounded-full blur-3xl animate-bounce-subtle"></div>
+        <div
+          className="absolute -bottom-20 -right-20 w-80 h-80 bg-secondary-200/20 rounded-full blur-3xl animate-bounce-subtle"
+          style={{ animationDelay: "1s" }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/4 w-40 h-40 bg-accent-200/20 rounded-full blur-3xl animate-bounce-subtle"
+          style={{ animationDelay: "2s" }}
+        ></div>
+      </div>
+
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, type: "just" }}
-        className={`p-10 overflow-hidden rounded-lg sm:my-[5%] sm:w-[80%] sm:mx-[10%] lg:w-[700px] xl:w-[800px] 2xl:w-[900px] lg:my-0 text-center shadow-lg ${
-          theme ? "bg-[#ececec] text-[#0a0a0a]" : "bg-[#0f0f0f] text-[#f0f0f0]"
-        }`}
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative glass-morphism rounded-3xl shadow-strong p-8 w-full max-w-2xl border border-white/50"
       >
-        <div className={"w-full overflow-hidden"}>
-          <div className={`${colors.textKey} text-[20px] sm:text-[25px] md:text-[30px] lg:text-[35px] xl:text-[40px] 2xl:text-[45px] font-bold mb-8 w-full float-left flex justify-center items-center`}>
-            Registration
+        {/* Logo/Header */}
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-soft">
+            <svg
+              className="w-12 h-12 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+              />
+            </svg>
           </div>
-          <div className="opacity-0">
+          <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
+            Create Account
+          </h1>
+          <p className="text-accent-600">Join our library community today</p>
+        </div>
+
+        <div className="opacity-0">
+          <EachField
+            label="fake"
+            type="email"
+            name="email"
+            isReal={false}
+            placeholder="Enter your email"
+            value={email}
+            setValue={setEmail}
+            iserror={emailError.iserror}
+            error={emailError.error}
+          />
+          <EachField
+            label="fake"
+            type="password"
+            name="password"
+            isReal={false}
+            placeholder="Enter your password"
+            value={password}
+            setValue={setPassword}
+            iserror={passwordError.iserror}
+            error={passwordError.error}
+          />
+        </div>
+
+        {/* Form Fields */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-6">
             <EachField
-              label="fake"
-              type="email"
-              name="email"
-              isReal={false}
-              placeholder="Enter your email"
-              value={email}
-              setValue={setEmail}
-              iserror={emailError.iserror}
-              error={emailError.error}
+              label="Name"
+              type="name"
+              name="name"
+              isReal={true}
+              placeholder="Enter your name"
+              value={name}
+              setValue={setName}
+              iserror={nameError.iserror}
+              error={nameError.error}
             />
             <EachField
-              label="fake"
+              label="Password"
               type="password"
               name="password"
-              isReal={false}
+              isReal={true}
               placeholder="Enter your password"
               value={password}
               setValue={setPassword}
@@ -202,112 +260,76 @@ const RegistrationForm = () => {
               error={passwordError.error}
             />
           </div>
+          <div className="space-y-6">
+            <EachField
+              label="Email"
+              type="email"
+              name="email"
+              isReal={true}
+              placeholder="Enter your email"
+              value={email}
+              setValue={setEmail}
+              iserror={emailError.iserror}
+              error={emailError.error}
+            />
+
+            {/* Password Strength Indicator */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-accent-700">
+                Password Strength
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4].map((level) => (
+                  <div
+                    key={level}
+                    className={`h-2 flex-1 rounded-full transition-colors duration-300 ${
+                      password.length >= level * 2
+                        ? level <= 2
+                          ? "bg-secondary-400"
+                          : level === 3
+                            ? "bg-yellow-400"
+                            : "bg-primary-500"
+                        : "bg-accent-200"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-accent-600">
+                {password.length === 0
+                  ? "Enter a password"
+                  : password.length < 8
+                    ? "Use at least 8 characters"
+                    : password.length < 12
+                      ? "Good password"
+                      : "Strong password"}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="w-full sm:hidden block overflow-hidden">
-          <EachField
-            label="Name"
-            type="name"
-            name="name"
-            isReal={true}
-            placeholder="Enter your name"
-            value={name}
-            setValue={setName}
-            iserror={nameError.iserror}
-            error={nameError.error}
-          />
-          <EachField
-            label="Password"
-            type="password"
-            name="password"
-            isReal={true}
-            placeholder="Enter your password"
-            value={password}
-            setValue={setPassword}
-            iserror={passwordError.iserror}
-            error={passwordError.error}
-          />
-          <EachField
-            label="Email"
-            type="email"
-            name="email"
-            isReal={true}
-            placeholder="Enter your email"
-            value={email}
-            setValue={setEmail}
-            iserror={emailError.iserror}
-            error={emailError.error}
-          />
-          <button
-            onClick={submitForm}
-            className={`text-[18px] cursor-pointer rounded-md mt-10 py-2 px-6 shadow-md ${
-              noError
-                ? "bg-green-800 hover:bg-green-700 text-white"
-                : theme
-                ? "bg-[#dbdbdb] text-[#808080]"
-                : "bg-[#1a1a1a] text-[#696969]"
-            }`}
-          >
-            {isLoading ? `Registering...` : `Register`}
-          </button>
-        </div>
+        <button
+          onClick={submitForm}
+          disabled={!noError || isLoading}
+          className="w-full mt-8 btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+              Creating account...
+            </>
+          ) : (
+            "Create Account"
+          )}
+        </button>
 
-        <div className={`float-left w-[50%] sm:block hidden overflow-hidden pr-5`}>
-          <EachField
-            label="Name"
-            type="name"
-            name="name"
-            isReal={true}
-            placeholder="Enter your name"
-            value={name}
-            setValue={setName}
-            iserror={nameError.iserror}
-            error={nameError.error}
-          />
-          <EachField
-            label="Password"
-            type="password"
-            name="password"
-            isReal={true}
-            placeholder="Enter your password"
-            value={password}
-            setValue={setPassword}
-            iserror={passwordError.iserror}
-            error={passwordError.error}
-          />
-        </div>
-
-        <div className={`float-left w-[50%] sm:block hidden overflow-hidden pl-5`}>
-          <EachField
-            label="Email"
-            type="email"
-            name="email"
-            isReal={true}
-            placeholder="Enter your email"
-            value={email}
-            setValue={setEmail}
-            iserror={emailError.iserror}
-            error={emailError.error}
-          />
-          <button
-            onClick={submitForm}
-            className={`text-[18px] cursor-pointer rounded-md mt-10 py-2 px-6 shadow-md ${
-              noError
-                ? "bg-green-800 hover:bg-green-700 text-white"
-                : theme
-                ? "bg-[#dbdbdb] text-[#808080]"
-                : "bg-[#1a1a1a] text-[#696969]"
-            }`}
-          >
-            {isLoading ? `Registering...` : `Register`}
-          </button>
-        </div>
-
-        <div className={"float-left w-full overflow-hidden"}>
-          <p className="mt-10 text-[16px] sm:text-[18px] md:text-[20px] lg:text-[22px] xl:text-[24px] 2xl:text-[26px]">
-            Already Have An Account?{" "}
-            <Link href="/login" className="text-blue-600 hover:text-blue-500">
-              Login
+        <div className="mt-8 text-center">
+          <p className="text-accent-600">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="text-primary-600 hover:text-primary-700 font-semibold transition-colors duration-200"
+            >
+              Sign in
             </Link>
           </p>
         </div>

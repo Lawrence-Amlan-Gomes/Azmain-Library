@@ -1,11 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
 import { getAllUsers2 } from "@/app/actions";
 import { useAuth } from "@/app/hooks/useAuth";
 import { motion } from "framer-motion";
-import Image from "next/image";
-import bookIcon from "../public/bookIcon.png";
-import colors from "@/app/colors";
+import { useEffect, useState } from "react";
 
 export default function AllUsers() {
   const { auth, allUsers, setAllUsers } = useAuth();
@@ -31,118 +28,447 @@ export default function AllUsers() {
       : [];
 
     return (
-      <div className="bg-white text-gray-800 w-full h-full min-h-screen p-6 overflow-y-auto">
-        <button
-          onClick={() => setSelectedUser(null)}
-          className="mb-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-        >
-          Go Back
-        </button>
-        <h2 className="text-2xl font-bold mb-4 text-gray-900">
-          {`${selectedUser.name}'s Borrowed History`}
-        </h2>
-        {borrowedHistory.length === 0 ? (
-          <p className="text-gray-500">No borrowing history available</p>
-        ) : (
-          <div className="w-full">
-            {borrowedHistory.map((entry, index) => {
-              const expiresDate = new Date(entry.expiresDate);
-              const returnDate = entry.return ? new Date(entry.return) : null;
-              const isOverdue = returnDate
-                ? returnDate > expiresDate
-                : new Date() > expiresDate;
+      <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-slate-100 overflow-hidden">
+        {/* Background Decorative Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -left-20 w-60 h-60 bg-primary-200/20 rounded-full blur-3xl animate-bounce-subtle"></div>
+          <div
+            className="absolute -bottom-20 -right-20 w-80 h-80 bg-secondary-200/20 rounded-full blur-3xl animate-bounce-subtle"
+            style={{ animationDelay: "1s" }}
+          ></div>
+          <div
+            className="absolute top-1/2 left-1/4 w-40 h-40 bg-accent-200/20 rounded-full blur-3xl animate-bounce-subtle"
+            style={{ animationDelay: "2s" }}
+          ></div>
+        </div>
 
-              return (
-                <motion.div
-                  key={`${entry.bookId}-${index}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="float-left w-[calc(25%-1rem)] mx-2 mb-4 bg-white p-3 border-[1px] border-[#aaaaaa] rounded-md shadow-sm"
+        <div className="relative container mx-auto px-6 py-8">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <button
+              onClick={() => setSelectedUser(null)}
+              className="btn-secondary flex items-center"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
+              Back to Users
+            </button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="glass-morphism rounded-3xl shadow-strong p-8 border border-white/50"
+          >
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center mr-4">
+                <svg
+                  className="w-7 h-7 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-16 h-24 rounded-md overflow-hidden flex items-center justify-center">
-                      <Image
-                        src={bookIcon}
-                        alt="Book icon"
-                        width={80}
-                        height={80}
-                        className="object-contain"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Book ID: {entry.bookId}</p>
-                      <p className="text-sm text-gray-600">Borrowed: {entry.borrowedDate}</p>
-                      <p className="text-sm text-gray-600">Expires: {entry.expiresDate}</p>
-                      <p className="text-sm text-gray-600">
-                        Return:{" "}
-                        <span className={isOverdue ? "text-red-600" : "text-green-600"}>
-                          {entry.return || (returnDate ? returnDate.toLocaleDateString() : "Have to return")}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-            <div className="clear-both"></div>
-          </div>
-        )}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gradient">{`${selectedUser.name}'s Borrowed History`}</h1>
+                <p className="text-accent-600">
+                  Complete borrowing record for this user
+                </p>
+              </div>
+            </div>
+
+            {borrowedHistory.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="text-center py-16"
+              >
+                <div className="w-20 h-20 bg-accent-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-10 h-10 text-accent-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-accent-900 mb-2">
+                  No borrowing history
+                </h3>
+                <p className="text-accent-600">
+                  This user hasn&apos;t borrowed any books yet
+                </p>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {borrowedHistory.map((entry, index) => {
+                  const expiresDate = new Date(entry.expiresDate);
+                  const returnDate = entry.return
+                    ? new Date(entry.return)
+                    : null;
+                  const isOverdue = returnDate
+                    ? returnDate > expiresDate
+                    : new Date() > expiresDate;
+
+                  return (
+                    <motion.div
+                      key={`${entry.bookId}-${index}`}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="glass-morphism rounded-2xl shadow-soft hover:shadow-medium transition-all duration-300 hover:scale-105 border border-white/50 overflow-hidden"
+                    >
+                      <div className="p-6">
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-16 h-16 bg-gradient-to-br from-accent-100 to-accent-200 rounded-xl overflow-hidden flex items-center justify-center shadow-soft">
+                              <svg
+                                className="w-8 h-8 text-accent-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="mb-3">
+                              <span className="inline-block px-2 py-1 bg-gradient-to-r from-accent-100 to-primary-100 text-accent-700 rounded-lg text-xs font-semibold mb-2">
+                                Book ID: {entry.bookId}
+                              </span>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex items-center text-sm text-accent-600">
+                                <svg
+                                  className="w-4 h-4 mr-2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                Borrowed: {entry.borrowedDate}
+                              </div>
+
+                              <div className="flex items-center text-sm text-accent-600">
+                                <svg
+                                  className="w-4 h-4 mr-2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                Expires: {entry.expiresDate}
+                              </div>
+
+                              <div className="flex items-center text-sm">
+                                <svg
+                                  className="w-4 h-4 mr-2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <span
+                                  className={`font-medium ${
+                                    isOverdue
+                                      ? "text-secondary-600"
+                                      : "text-primary-600"
+                                  }`}
+                                >
+                                  {entry.return ||
+                                    (returnDate
+                                      ? returnDate.toLocaleDateString()
+                                      : "Have to return")}
+                                </span>
+                              </div>
+                            </div>
+
+                            {isOverdue && (
+                              <div className="mt-3 p-2 bg-secondary-50 border border-secondary-200 rounded-lg">
+                                <p className="text-xs font-medium text-secondary-700 flex items-center">
+                                  <svg
+                                    className="w-4 h-4 mr-1"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                                    />
+                                  </svg>
+                                  Overdue Book
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white text-gray-800 w-full h-full min-h-screen p-6 overflow-y-auto">
-      <h2 className="text-2xl font-bold mb-4 text-gray-900">All Users</h2>
-      {allUsers.length === 0 ? (
-        <p className="text-gray-500">No users available</p>
-      ) : (
-        <div className="w-full">
-          {allUsers
-            .filter((user) => user.email !== auth?.email)
-            .map((user, index) => (
-              <motion.div
-                key={user.email}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                onClick={() => setSelectedUser(user)}
-                className="float-left w-[calc(25%-1rem)] mx-2 mb-4 bg-white p-3 border-[1px] border-[#aaaaaa] rounded-md shadow-sm cursor-pointer hover:bg-gray-50"
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-slate-100 overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-20 -left-20 w-60 h-60 bg-primary-200/20 rounded-full blur-3xl animate-bounce-subtle"></div>
+        <div
+          className="absolute -bottom-20 -right-20 w-80 h-80 bg-secondary-200/20 rounded-full blur-3xl animate-bounce-subtle"
+          style={{ animationDelay: "1s" }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/4 w-40 h-40 bg-accent-200/20 rounded-full blur-3xl animate-bounce-subtle"
+          style={{ animationDelay: "2s" }}
+        ></div>
+      </div>
+
+      <div className="relative container mx-auto px-6 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <div className="flex items-center mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center mr-4">
+              <svg
+                className="w-7 h-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <div className="flex items-center space-x-4">
-                  <div className="bg-gray-200 w-16 h-24 rounded-md overflow-hidden flex items-center justify-center">
-                    {user.photo ? (
-                      <Image
-                        src={user.photo}
-                        alt="User profile"
-                        width={64}
-                        height={96}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex justify-center items-center text-xl font-semibold text-gray-500">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gradient">All Users</h1>
+              <p className="text-accent-600">
+                Manage and view all library users
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {allUsers.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="text-center py-16"
+          >
+            <div className="w-20 h-20 bg-accent-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-10 h-10 text-accent-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-accent-900 mb-2">
+              No users available
+            </h3>
+            <p className="text-accent-600">
+              There are no users registered in the system yet
+            </p>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {allUsers
+              .filter((user) => user.email !== auth?.email)
+              .map((user, index) => (
+                <motion.div
+                  key={user.email}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  onClick={() => setSelectedUser(user)}
+                  className="glass-morphism rounded-2xl shadow-soft hover:shadow-medium transition-all duration-300 hover:scale-105 cursor-pointer border border-white/50 overflow-hidden"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="relative">
+                        <div className="w-16 h-16 bg-gradient-to-br from-accent-100 to-accent-200 rounded-2xl overflow-hidden flex items-center justify-center shadow-soft">
+                          {user.photo ? (
+                            <img
+                              src={user.photo}
+                              alt="User profile"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex justify-center items-center">
+                              <svg
+                                className="w-8 h-8 text-accent-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        {/* Online Status Indicator */}
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-accent-900 mb-1">
+                          {user.name}
+                        </h3>
+                        <p className="text-sm text-accent-600">{user.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-accent-600">
                         <svg
-                          className="w-12 h-12 text-gray-500"
-                          fill="currentColor"
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                          />
                         </svg>
+                        {user.phone || "No phone"}
                       </div>
-                    )}
+
+                      <div className="flex items-center text-sm text-accent-600">
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                          />
+                        </svg>
+                        {Array.isArray(user.borrowedBooks)
+                          ? user.borrowedBooks.length
+                          : 0}{" "}
+                        books borrowed
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-accent-200">
+                      <button className="w-full px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-sm font-medium rounded-lg hover:shadow-soft transition-all duration-200 flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                        View Details
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className={`${colors.textKey} text-lg font-semibold`}>{user.name}</h3>
-                    <p className="text-sm text-gray-600">Email: {user.email}</p>
-                    <p className="text-sm text-gray-600">Phone: {user.phone}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          <div className="clear-both"></div>
-        </div>
-      )}
+                </motion.div>
+              ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
